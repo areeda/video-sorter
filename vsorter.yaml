@@ -1,0 +1,12 @@
+name: vsorter-3.11
+channels:
+  - conda-forge
+dependencies:
+  - python >=3.11,<3.12
+  - pip
+  - setuptools
+  - flask >=2.3, <2.4
+  - gunicorn >=21.0, <22.0
+  - imagemagick >=7.0, <8.0
+  - numpy
+  - opencv >=4.6, <5.0

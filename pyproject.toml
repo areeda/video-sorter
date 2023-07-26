@@ -1,0 +1,54 @@
+[build-system]
+requires = [
+  "setuptools",
+  "setuptools_scm[toml]>=3.4.3",
+  "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+  name = "condor-jautils"
+  description = "A collection of small programs to work with htCondor jobs"
+  readme = "README.md"
+  authors = [
+    { name = "Joseph Areeda", email = "joe@areeda.com" },
+  ]
+  maintainers = [
+    { name = "Joseph Areeda", email = "joe@areeda.com" },
+  ]
+  classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console (Text Based)",
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Multimedia",
+  ]
+
+  # requirements
+  requires-python = ">=3.11"
+  dependencies = [
+    "flask",
+      "gunicorn",
+      "numpy",
+      "ja_webutils",
+  ]
+
+  # dynamic properties set by tools
+  dynamic = [
+    "version",
+  ]
+[tool.setuptools]
+license-files = [ "LICENSE" ]
+
+[tool.setuptools_scm]
+write_to = "vsorter/_version.py"
