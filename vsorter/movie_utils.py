@@ -28,15 +28,20 @@ m2g_default_config = """
     [movie2gif]
         scale = .25
         tmpdir = None
-        delay = 50
+        delay = 20
         loop = 0
         speedup = 5
+        
 """
 
 vsorter_default_config = """
     [vsorter]
-            
+        baseurl = http://127.0.0.1:5000
+        dirs = good, fair, other, trash
+        imgperpage = 30
+        nproc = 6         
 """
+
 
 def get_config(path):
     """
@@ -48,14 +53,20 @@ def get_config(path):
     config.read_file(path)
     return config
 
-def get_def_config(prog):
+
+def get_def_config(prog: str) -> configparser.ConfigParser:
     """
     return a configparser object feom defaults
     :param str prog: which default (m2g, )
     :return ConfigParser: object created from internal values
     """
     config = configparser.ConfigParser()
+    def_config = None
     if prog == 'm2g':
         def_config = m2g_default_config
-    config.read_string(def_config)
-    return  config
+    elif prog == 'vsorter':
+        def_config = vsorter_default_config
+
+    if def_config:
+        config.read_string(def_config)
+    return config

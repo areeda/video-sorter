@@ -1,9 +1,10 @@
-name: vsorter-3.11
+name: vsorter-3.10
 channels:
   - conda-forge
 dependencies:
-  - python >=3.11,<3.12
+  - python >=3.10,<3.11
   - pip
+  - pytz
   - setuptools
   - flask >=2.3, <2.4
   - gunicorn >=21.0, <22.0

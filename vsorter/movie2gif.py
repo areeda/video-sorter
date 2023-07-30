@@ -36,11 +36,11 @@ import subprocess
 import sys
 
 import cv2
+from ._version import __version__
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
 __process_name__ = 'video-sorter'
-__version__ = '0.0.0'
 
 logger = None
 
@@ -65,6 +65,10 @@ def main():
     parser.add_argument('out', type=Path, nargs='?', help='path to output, default is "<input file>-thumb.gif"')
     parser.add_argument('--tmpdir', type=Path, help='Location to store our intermediate files')
     parser.add_argument('--config', type=Path, help='Our .ini file')
+    parser.add_argument('--delay', type=int, help='time between frames in thumbnail, overrides config')
+    parser.add_argument('--scale', type=float,
+                        help='Scale factor for movie to thumbnale 0< scale < 1, overrides config')
+    parser.add_argument('--speedup', type=int, help='Number of frames to skip in movie to thumbnail, overrides config')
 
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose

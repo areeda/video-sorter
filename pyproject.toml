@@ -7,8 +7,8 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-  name = "condor-jautils"
-  description = "A collection of small programs to work with htCondor jobs"
+  name = "video-sorter"
+  description = "A collection of small programs to work with lot o vieo files"
   readme = "README.md"
   authors = [
     { name = "Joseph Areeda", email = "joe@areeda.com" },
@@ -30,12 +30,13 @@ build-backend = "setuptools.build_meta"
     "Operating System :: MacOS",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Topic :: Multimedia",
   ]
 
   # requirements
-  requires-python = ">=3.11"
+  requires-python = ">=3.10"
   dependencies = [
     "flask",
       "gunicorn",
@@ -52,3 +53,7 @@ license-files = [ "LICENSE" ]
 
 [tool.setuptools_scm]
 write_to = "vsorter/_version.py"
+
+[project.scripts]
+movie2gif = "vsorter.movie2gif:main"
+vsorter = "vsorter.vsorter:main"

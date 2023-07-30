@@ -22,12 +22,13 @@
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
+__name__ = 'vsorter_action'
 
 from flask import Flask
 
 app = Flask(__name__)
 
 
-@app.route('/testhello.py')
-def hello():
+@app.route('/vsorter_action.py')
+def vsorter_action():
     return 'Hello, World!'

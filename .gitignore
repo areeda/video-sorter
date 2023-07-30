@@ -25,6 +25,7 @@ MANIFEST
 Portfile
 .coverage
 .eggs/
+vsorter/_version.py
 
 debian/changelog
 
