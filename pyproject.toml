@@ -55,5 +55,6 @@ license-files = [ "LICENSE" ]
 write_to = "vsorter/_version.py"
 
 [project.scripts]
+avi2mp4 = "vsorter.avi2mp4:main1"
 movie2gif = "vsorter.movie2gif:main"
 vsorter = "vsorter.vsorter:main"

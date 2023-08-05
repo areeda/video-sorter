@@ -6,7 +6,8 @@ dependencies:
   - pip
   - pytz
   - setuptools
-  - flask >=2.3, <2.4
+  - ffmpeg
+  - flask
   - gunicorn >=21.0, <22.0
   - imagemagick >=7.0, <8.0
   - numpy

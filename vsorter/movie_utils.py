@@ -39,7 +39,7 @@ vsorter_default_config = """
         baseurl = http://127.0.0.1:5000
         dirs = good, fair, other, trash
         imgperpage = 30
-        nproc = 6         
+        nproc = 4
 """
 
 

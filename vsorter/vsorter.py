@@ -29,7 +29,7 @@ start_time = time.time()
 import os
 from ja_webutils.Page import Page
 from ja_webutils.PageForm import PageForm
-from ja_webutils.PageItem import PageItemImage, PageItemRadioButton
+from ja_webutils.PageItem import PageItemImage, PageItemRadioButton, PageItemHeader, PageItemLink
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
 from vsorter.movie_utils import get_config, get_def_config
@@ -77,13 +77,14 @@ def mkthumb(inq, outq):
                 outq.put((fpath, thumb_name))
 
 
-def mkhtml(movieq, odirs, form, maximg):
+def mkhtml(movieq, odirs, form, maximg, noout):
     """
 
     :param Queue movieq: tuple (<path to full movie>, <path
     :param list odirs: tuple (<menu option text>, <path to dir>)
     :param PageForm form: form used to select images
     :param  int maximg: add at most this many images
+    :param bool noout: do not create dirs or add disposition
 
     :return PageTable:
     """
@@ -94,6 +95,7 @@ def mkhtml(movieq, odirs, form, maximg):
     img_num = 0
     options = list()
     options.append((f'action_noact', 'No action', f'noaction'))
+    need_basedir = True
 
     for odir in odirs:
         options.append((f'action_{odir[0]}', odir[0], f'{odir[0]}'))
@@ -108,18 +110,22 @@ def mkhtml(movieq, odirs, form, maximg):
         row = PageTableRow()
         thumb_path:Path = itm[1]
         movie_path:Path = itm[0]
+        if need_basedir:
+            form.add_hidden('basedir', str(thumb_path.parent.absolute()))
         img_lbl = f'{img_num:03d}'
-        row.add(f'{img_lbl}: {movie_path.name}')
+        img_link = PageItemLink(f'file://{movie_path.absolute()}', f'{img_lbl}: {movie_path.name}', target='_blank')
+        row.add(img_link)
         thumb_id = f'thumb_{img_lbl}'
-        form.add_hidden(f'thumb_path_{img_lbl}', str(thumb_path))
-        form.add_hidden(f'movie_path_{img_lbl}', str(movie_path))
+        form.add_hidden(f'thumb_path_{img_lbl}', str(thumb_path.absolute()))
+        form.add_hidden(f'movie_path_{img_lbl}', str(movie_path.absolute()))
 
         thumb = PageItemImage(url=thumb_path.name, alt_text=thumb_id, id=thumb_id,
                               name=thumb_id, class_name='thumb')
         row.add(thumb)
 
-        disposition = PageItemRadioButton('Movie disposition', options, name=f'disposition_{img_lbl}')
-        row.add(disposition)
+        if not noout:
+            disposition = PageItemRadioButton('Movie disposition', options, name=f'disposition_{img_lbl}')
+            row.add(disposition)
         img_table.add_row(row)
     return img_table
 
@@ -139,10 +145,11 @@ def main():
                         version=__version__)
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
-    parser.add_argument('--nproc', type=int, default=4, help='number of parallel movie2gif jobs to run')
+    parser.add_argument('--nproc', type=int, help='number of parallel movie2gif jobs to run')
     parser.add_argument('--indir', type=Path, default='.', help='Path to directory with movies(.avi, ,p4, mov) files')
     parser.add_argument('--outdir', type=Path, help='Where to put html, default= same as indir')
     parser.add_argument('--config', type=Path, help='Vsorter configuration file')
+    parser.add_argument('--noout', action="store_true", help='do not creat output dirs or add dispsition radio buttons')
 
     m2g_opts = parser.add_argument_group(title="movie2gif", description="option for making thumbnails")
     m2g_opts.add_argument('--delay', type=int, help='time between frames in thumbnail, overrides config')
@@ -173,8 +180,8 @@ def main():
     else:
         config: ConfigParser = get_def_config('vsorter')
 
-    files = list(indir.glob('*.AVI'))
-    logger.info(f'{len(files)} movie files were found in {indir}')
+    files = list(indir.glob('*.mp4'))
+    logger.info(f'{len(files)} movie files were found in {indir.absolute()}')
     gif_in_q = Queue()
     gif_out_q = Queue()
 
@@ -189,7 +196,7 @@ def main():
         nproc = int(config['vsorter']['nproc'])
     else:
         nproc = 1
-        
+
     if nproc > 1:
         for i in range(0, nproc):
             g2m = Process(target=mkthumb, args=(gif_in_q, gif_out_q), name=f'thumb-{i + 1}')
@@ -210,17 +217,21 @@ def main():
         dirdef = dirdef.split(',')
 
     odirs = list()
-    for d in dirdef:
-        dname = d.strip()
-        outd = outdir / dname
-        outd.mkdir(0o755, parents=True, exist_ok=True)
-        odirs.append((dname, outd))
+    if not args.noout:
+        for d in dirdef:
+            dname = d.strip()
+            outd = outdir / dname
+            outd.mkdir(0o755, parents=True, exist_ok=True)
+            odirs.append((dname, outd))
 
     form = PageForm(action='http://127.0.0.1:5000/')
-    img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles)
+    img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout)
     form.add(img_tbl)
 
     page = Page()
+    heading = f'Overview of {indir.absolute()} {len(files)} images in dir max {maxfiles} per run'
+    page.add(PageItemHeader(heading, 2))
+    page.add_blanks(2)
     page.add(form)
     html = page.get_html()
     ofile = outdir / 'index.html'
