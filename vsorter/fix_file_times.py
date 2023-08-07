@@ -19,12 +19,9 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-"""
-Convert a directory full of AVI movies to MP4 with audio amplification
-"""
+""""""
 import os
 import time
-from multiprocessing import Queue
 
 start_time = time.time()
 
@@ -43,56 +40,10 @@ __version__ = '0.0.0'
 logger = None
 
 
-def mkmp4(inq):
-    """
-    Convert to movie to mp4 maximizing volume
-    :param Queue inq: input movie files
-    :return:
-    """
-    volume_pat = re.compile('.*max_volume: -([\\d.]+) dB')
-    while True:
-        infile: Path|str = inq.get()
-        if infile == 'DONE':
-            break
-        outfile = infile.with_suffix('.mp4')
-        if outfile.exists():
-            continue
-
-        # get audio volume:
-        cmd = ['ffmpeg', '-i', str(infile.absolute()), '-filter:a', 'volumedetect', '-f', 'null', '/dev/null']
-        vres = subprocess.run(cmd, capture_output=True)
-        if vres.returncode == 0:
-            serr = vres.stderr.decode('utf-8')
-            novolume = True
-            for line in serr.splitlines():
-                m = volume_pat.match(line)
-                if m:
-                    volume = float(m.group(1))
-                    novolume = False
-                    logger.info(f'{infile.name} input max volume = -{volume:.1f}')
-
-                    cmd = ['ffmpeg', '-i', str(infile.absolute()),]
-                    if volume > 0.9:
-                        cmd.extend(['-filter:a', f"volume={volume:.1f}dB"])
-                    cmd.append(str(outfile.absolute()))
-                    cvtres = subprocess.run(cmd, capture_output=True)
-                    if cvtres.returncode != 0:
-                        logger.info(f'ffmpeg failed to convert {infile.name} to mp4')
-                    else:
-                        if outfile.exists():
-                            astat = infile.stat()
-                            os.utime(outfile, (astat.st_atime, astat.st_mtime))
-            if novolume:
-                logger.critical(f'Could not find volume for {infile.name}')
-        else:
-            logger.critical(f'ffmpg failed to fin volume for {infile.name}')
-
-
 def main():
     global logger
 
     logging.basicConfig()
-
     logger = logging.getLogger(__process_name__)
     logger.setLevel(logging.DEBUG)
 
@@ -105,7 +56,7 @@ def main():
                         version=__version__)
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
-    parser.add_argument('--indir', type=Path, nargs='+', help='Input file or directory')
+    parser.add_argument('--indir', type=Path, required=True)
 
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose
@@ -122,24 +73,13 @@ def main():
     for k, v in args.__dict__.items():
         logger.debug('    {} = {}'.format(k, v))
 
-    indirs: list = args.indir
-    files = list()
-
-    indir: Path
-    for indir in indirs:
-        if indir.is_dir():
-            files.extend(indir.glob('*AVI'))
-            logger.info(f'{len(files)} found in {indir.absolute()}')
-        elif indir.is_file() and indir.name.endswith('AVI'):
-            files.append(indir)
-            logger.info(f'added {indir.absolute()}')
-
-    inq = Queue()
-    for f in files:
-        inq.put(f)
-
-    inq.put('DONE')
-    mkmp4(inq)
+    indir: Path = args.indir
+    files = indir.glob('*AVI')
+    for avi in files:
+        mp4 = avi.with_suffix('.mp4')
+        if mp4.exists():
+            astat = avi.stat()
+            os.utime(mp4, (astat.st_atime, astat.st_mtime))
 
 
 if __name__ == "__main__":

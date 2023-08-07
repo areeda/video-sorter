@@ -20,6 +20,7 @@
 #
 
 """"""
+import datetime
 import time
 import webbrowser
 from configparser import ConfigParser
@@ -28,8 +29,9 @@ start_time = time.time()
 
 import os
 from ja_webutils.Page import Page
-from ja_webutils.PageForm import PageForm
-from ja_webutils.PageItem import PageItemImage, PageItemRadioButton, PageItemHeader, PageItemLink
+from ja_webutils.PageForm import PageForm, PageFormButton
+from ja_webutils.PageItem import PageItemImage, PageItemRadioButton, PageItemHeader, PageItemLink, PageItemList, \
+    PageItemBlanks, PageItemVideo, PageItemArray
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
 from vsorter.movie_utils import get_config, get_def_config
@@ -77,7 +79,7 @@ def mkthumb(inq, outq):
                 outq.put((fpath, thumb_name))
 
 
-def mkhtml(movieq, odirs, form, maximg, noout):
+def mkhtml(movieq, odirs, form, maximg, noout, speeds):
     """
 
     :param Queue movieq: tuple (<path to full movie>, <path
@@ -85,6 +87,7 @@ def mkhtml(movieq, odirs, form, maximg, noout):
     :param PageForm form: form used to select images
     :param  int maximg: add at most this many images
     :param bool noout: do not create dirs or add disposition
+    :param Array(float) speeds: array of speed options
 
     :return PageTable:
     """
@@ -113,24 +116,41 @@ def mkhtml(movieq, odirs, form, maximg, noout):
         if need_basedir:
             form.add_hidden('basedir', str(thumb_path.parent.absolute()))
         img_lbl = f'{img_num:03d}'
-        img_link = PageItemLink(f'file://{movie_path.absolute()}', f'{img_lbl}: {movie_path.name}', target='_blank')
-        row.add(img_link)
-        thumb_id = f'thumb_{img_lbl}'
-        form.add_hidden(f'thumb_path_{img_lbl}', str(thumb_path.absolute()))
-        form.add_hidden(f'movie_path_{img_lbl}', str(movie_path.absolute()))
+        movie_id = f'movie_{img_lbl}'
 
-        thumb = PageItemImage(url=thumb_path.name, alt_text=thumb_id, id=thumb_id,
-                              name=thumb_id, class_name='thumb')
-        row.add(thumb)
+        mstat = movie_path.stat()
+        mtime = datetime.datetime.utcfromtimestamp(mstat.st_mtime)
+        mtime_str = mtime.strftime('%x %X')
+        pil = PageItemArray()
+        pil.add(mtime_str)
+        pil.add(PageItemBlanks(1))
+        img_link = PageItemLink(f'file://{movie_path.absolute()}', f'{img_lbl}: {movie_path.name}', target='_blank')
+        pil.add(img_link)
+        pil.add(PageItemBlanks(2))
+        for s in speeds:
+            spd_str = f'{s:.2f}' if s < 1 else f'         {s:4.0f}'
+            btn_name = f'btn_{img_num:03d}_{s:.2f}'
+            btn = PageFormButton(name=btn_name, contents=f'Play {spd_str}X', type='button',)
+            btn.add_event('onclick', f'movie_start(\'{movie_id}\', {spd_str});')
+            pil.add(btn)
+            pil.add(PageItemBlanks(1))
+
+        form.add_hidden(f'movie_path_{img_lbl}', str(movie_path.absolute()))
+        movie = PageItemVideo(src=f'file://{movie_path.absolute()}', controls=True, height=550,
+                              id=movie_id, class_name='movie')
+        row.add(pil)
+        row.add(movie)
 
         if not noout:
-            disposition = PageItemRadioButton('Movie disposition', options, name=f'disposition_{img_lbl}')
+            disposition = PageItemRadioButton('Movie disposition', options, name=f'disposition_{img_lbl}',
+                                              class_name='disposition')
             row.add(disposition)
         img_table.add_row(row)
     return img_table
 
 def main():
     global logger
+    page = Page()
 
     logging.basicConfig()
     logger = logging.getLogger(__process_name__)
@@ -180,36 +200,41 @@ def main():
     else:
         config: ConfigParser = get_def_config('vsorter')
 
+    ftype = 'mp4'
     files = list(indir.glob('*.mp4'))
     logger.info(f'{len(files)} movie files were found in {indir.absolute()}')
     gif_in_q = Queue()
     gif_out_q = Queue()
 
     maxfiles = min(len(files), int(config['vsorter']['imgperpage']))
-    for f  in files:
-        gif_in_q.put(f)
-
-    processes = list()
-    if args.nproc:
-        nproc: int = args.nproc
-    elif 'nproc' in config['vsorter'].keys():
-        nproc = int(config['vsorter']['nproc'])
+    if ftype == 'mp4':
+        for f in files:
+            gif_out_q.put((f, f))
     else:
-        nproc = 1
+        for f in files:
+            gif_in_q.put(f)
 
-    if nproc > 1:
-        for i in range(0, nproc):
-            g2m = Process(target=mkthumb, args=(gif_in_q, gif_out_q), name=f'thumb-{i + 1}')
-            g2m.daemon = True
-            g2m.start()
-            processes.append(g2m)
+        processes = list()
+        if args.nproc:
+            nproc: int = args.nproc
+        elif 'nproc' in config['vsorter'].keys():
+            nproc = int(config['vsorter']['nproc'])
+        else:
+            nproc = 1
+
+        if nproc > 1:
+            for i in range(0, nproc):
+                g2m = Process(target=mkthumb, args=(gif_in_q, gif_out_q), name=f'thumb-{i + 1}')
+                g2m.daemon = True
+                g2m.start()
+                processes.append(g2m)
+                gif_in_q.put('DONE')
+        else:
             gif_in_q.put('DONE')
-    else:
-        gif_in_q.put('DONE')
-        mkthumb(gif_in_q, gif_out_q)
+            mkthumb(gif_in_q, gif_out_q)
 
-    for p in processes:
-        p.join()
+        for p in processes:
+            p.join()
 
     gif_out_q.put(('DONE', 'DONE'))
     dirdef = config['vsorter']['dirs']
@@ -224,11 +249,33 @@ def main():
             outd.mkdir(0o755, parents=True, exist_ok=True)
             odirs.append((dname, outd))
 
+    speed_def = config['vsorter']['speeds']
+    if speed_def:
+        speed_def = speed_def.split(',')
+    speeds = list()
+    for s in speed_def:
+        speed = float(s)
+        speeds.append(speed)
+
     form = PageForm(action='http://127.0.0.1:5000/')
-    img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout)
+    img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout, speeds)
     form.add(img_tbl)
 
-    page = Page()
+    page.title = indir.name
+    page.include_js_cdn('jquery')
+    page.add_style('.disposition {font-size: 1.4em;}')
+    page.add_headjs(
+        """
+        function movie_start(id, speed)
+        {
+            let movie = document.getElementById(id);
+
+            movie.playbackRate = speed;
+            movie.play();
+        }
+        """
+    )
+    page.add_loadjs('jQuery(".movie").playbackRate=5;')
     heading = f'Overview of {indir.absolute()} {len(files)} images in dir max {maxfiles} per run'
     page.add(PageItemHeader(heading, 2))
     page.add_blanks(2)

@@ -40,6 +40,7 @@ vsorter_default_config = """
         dirs = good, fair, other, trash
         imgperpage = 30
         nproc = 4
+        speeds = 0.25, 0.5, 1, 2, 3, 4 ,5
 """
 
 
