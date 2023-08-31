@@ -24,6 +24,7 @@ import datetime
 import time
 import webbrowser
 from configparser import ConfigParser
+from typing import Any
 
 start_time = time.time()
 
@@ -166,16 +167,22 @@ def main():
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
     parser.add_argument('--nproc', type=int, help='number of parallel movie2gif jobs to run')
-    parser.add_argument('--indir', type=Path, default='.', help='Path to directory with movies(.avi, ,p4, mov) files')
+    parser.add_argument('--indir', type=Path, default='.', help='Path to directory with movies(.avi, mp4, mov) files')
     parser.add_argument('--outdir', type=Path, help='Where to put html, default= same as indir')
-    parser.add_argument('--config', type=Path, help='Vsorter configuration file')
-    parser.add_argument('--noout', action="store_true", help='do not creat output dirs or add dispsition radio buttons')
+    parser.add_argument('--config', type=Path, help='Vsorter configuration file default = ~/.vsorter.ini if'
+                                                    'it exists else internam imovie config')
+    parser.add_argument('--noout', action="store_true",
+                        help='do not creat output dirs or add disposition radio buttons')
+    parser.add_argument('--incfg', help='Select included config (default, imovie)')
+    parser.add_argument('--max-img', type=int, help='How many videos on the page')
+    parser.add_argument('--print-config', action="store_true", help='Print the included config to make it easy to edit')
 
     m2g_opts = parser.add_argument_group(title="movie2gif", description="option for making thumbnails")
     m2g_opts.add_argument('--delay', type=int, help='time between frames in thumbnail, overrides config')
     m2g_opts.add_argument('--scale', type=float,
                         help='Scale factor for movie to thumbnale 0< scale < 1, overrides config')
     m2g_opts.add_argument('--speedup', type=int, help='Number of frames to skip in movie to thumbnail, overrides config')
+
 
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose
@@ -193,12 +200,22 @@ def main():
         logger.debug('    {} = {}'.format(k, v))
 
     indir: Path = args.indir
-    outdir = args.outdir if args.outdir else indir
+    outdir: Path = args.outdir if args.outdir else indir
 
     if args.config:
         config: ConfigParser = get_config(args.config)
+    elif args.incfg:
+        config: ConfigParser = get_def_config(args.incfg)
     else:
-        config: ConfigParser = get_def_config('vsorter')
+        default_config = Path().home() / '.vsorter.ini'
+        if default_config.exists():
+            config: ConfigParser = get_config(default_config)
+        else:
+            config: ConfigParser = get_def_config('vsorter')
+
+    if args.print_config:
+        config.write(sys.stdout, space_around_delimiters=True)
+        return
 
     ftype = 'mp4'
     files = list(indir.glob('*.mp4'))
@@ -206,7 +223,8 @@ def main():
     gif_in_q = Queue()
     gif_out_q = Queue()
 
-    maxfiles = min(len(files), int(config['vsorter']['imgperpage']))
+    maxfiles = args.max_img if args.max_img else int(config['vsorter']['imgperpage'])
+    maxfiles = min(len(files), maxfiles)
     if ftype == 'mp4':
         for f in files:
             gif_out_q.put((f, f))
@@ -270,8 +288,17 @@ def main():
         {
             let movie = document.getElementById(id);
 
-            movie.playbackRate = speed;
-            movie.play();
+            isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
+
+            if (!isVideoPlaying)
+            {
+                movie.playbackRate = speed;
+                movie.play();
+            }
+            else
+            {
+                movie.pause();
+            }
         }
         """
     )

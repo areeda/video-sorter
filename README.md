@@ -17,13 +17,14 @@ that they are out of the frame before the recording starts.
 This project is an attempt to facilitate preprocessing and sorting the image files into different
 directories.
 
-The directories we use are:
+The directories we use to sort incoming files are:
 - Good: probably will include part of it
 - Poor: contains something interesting enough to not delete it
 - Other: Something interesting but on the topic
 - Trash: To be deleted
 
 ## The workflow
+If the input movie recordings are
 
 ### preprocessing
 

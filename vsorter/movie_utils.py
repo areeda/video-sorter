@@ -37,13 +37,21 @@ m2g_default_config = """
 vsorter_default_config = """
     [vsorter]
         baseurl = http://127.0.0.1:5000
+        outdir = indir
         dirs = good, fair, other, trash
         imgperpage = 30
         nproc = 4
         speeds = 0.25, 0.5, 1, 2, 3, 4 ,5
 """
 
-
+vsorter_imovie_config = """
+    [vsorter]
+        baseurl = http://127.0.0.1:5000
+        dirs = used, held, trash
+        imgperpage = 30
+        nproc = 4
+        speeds = 0.25, 0.5, 1, 2, 3, 4 ,5
+"""
 def get_config(path):
     """
     Read a configuration file
@@ -67,6 +75,8 @@ def get_def_config(prog: str) -> configparser.ConfigParser:
         def_config = m2g_default_config
     elif prog == 'vsorter':
         def_config = vsorter_default_config
+    elif prog == 'imovie':
+        def_config = vsorter_imovie_config
 
     if def_config:
         config.read_string(def_config)
