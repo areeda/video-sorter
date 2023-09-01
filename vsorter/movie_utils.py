@@ -58,8 +58,9 @@ def get_config(path):
     :param Path|str path:
     :return:
     """
+
     config = configparser.ConfigParser()
-    config.read_file(path)
+    config.read(path)
     return config
 
 

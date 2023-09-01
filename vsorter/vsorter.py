@@ -32,7 +32,7 @@ import os
 from ja_webutils.Page import Page
 from ja_webutils.PageForm import PageForm, PageFormButton
 from ja_webutils.PageItem import PageItemImage, PageItemRadioButton, PageItemHeader, PageItemLink, PageItemList, \
-    PageItemBlanks, PageItemVideo, PageItemArray
+    PageItemBlanks, PageItemVideo, PageItemArray, PageItemString
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
 from vsorter.movie_utils import get_config, get_def_config
@@ -114,8 +114,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
         row = PageTableRow()
         thumb_path:Path = itm[1]
         movie_path:Path = itm[0]
-        if need_basedir:
-            form.add_hidden('basedir', str(thumb_path.parent.absolute()))
+
         img_lbl = f'{img_num:03d}'
         movie_id = f'movie_{img_lbl}'
 
@@ -135,6 +134,21 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
             btn.add_event('onclick', f'movie_start(\'{movie_id}\', {spd_str});')
             pil.add(btn)
             pil.add(PageItemBlanks(1))
+
+        reset_char = PageItemString('&#x23EE;', escape=False, class_name='char_btn')
+        bkup_char = PageItemString('&#x21ba;', escape=False, class_name='char_btn')
+        pause_char = PageItemString('&#23F8;', escape=False, class_name='char_btn')
+        nbsp = PageItemString('&nbsp;', escape=False, class_name='char_btn')
+
+        btn = PageFormButton(name='reset_btn', contents=reset_char, type='button', )
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'reset\');')
+        pil.add(btn)
+
+        btn = PageFormButton(name='bkup_btn', contents=bkup_char, type='button', )
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'backup\');')
+        pil.add(btn)
+
+        pil.add(PageItemBlanks(1))
 
         form.add_hidden(f'movie_path_{img_lbl}', str(movie_path.absolute()))
         movie = PageItemVideo(src=f'file://{movie_path.absolute()}', controls=True, height=550,
@@ -200,22 +214,42 @@ def main():
         logger.debug('    {} = {}'.format(k, v))
 
     indir: Path = args.indir
-    outdir: Path = args.outdir if args.outdir else indir
 
-    if args.config:
-        config: ConfigParser = get_config(args.config)
-    elif args.incfg:
-        config: ConfigParser = get_def_config(args.incfg)
-    else:
-        default_config = Path().home() / '.vsorter.ini'
-        if default_config.exists():
-            config: ConfigParser = get_config(default_config)
+    config_file = None
+    try:
+        if args.config:
+            config_file = args.config
+            config: ConfigParser = get_config(args.config)
+        elif args.incfg:
+            config_file = 'internal config: ' + args.incfg
+            config: ConfigParser = get_def_config(args.incfg)
         else:
-            config: ConfigParser = get_def_config('vsorter')
+            default_config = Path().home() / '.vsorter.ini'
+
+            if default_config.exists():
+                config_file = default_config.absolute()
+                config: ConfigParser = get_config(default_config)
+            else:
+                config_file = 'Default internl config'
+                config: ConfigParser = get_def_config('vsorter')
+    except TypeError as ex:
+        logger.critical(f'Error reading configuration from {config_file}: {ex}')
+        return
 
     if args.print_config:
         config.write(sys.stdout, space_around_delimiters=True)
         return
+
+    if 'outdir' in config['vsorter'].keys():
+        outdir = config['vsorter']['outdir']
+    else:
+        outdir = None
+    if args.outdir:
+        outdir = args.outdir
+    elif outdir is None:
+        outdir = indir
+    outdir = Path(outdir)
+    logger.info(f'Moving data to {outdir.absolute()}')
 
     ftype = 'mp4'
     files = list(indir.glob('*.mp4'))
@@ -276,6 +310,8 @@ def main():
         speeds.append(speed)
 
     form = PageForm(action='http://127.0.0.1:5000/')
+    form.add_hidden('indir', str(indir.absolute()))
+    form.add_hidden('basedir', str(outdir.absolute()))
     img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout, speeds)
     form.add(img_tbl)
 
@@ -292,6 +328,7 @@ def main():
 
             if (!isVideoPlaying)
             {
+                movie.currentTime = 0;
                 movie.playbackRate = speed;
                 movie.play();
             }
@@ -300,20 +337,38 @@ def main():
                 movie.pause();
             }
         }
+        function movie_fn(id, fname)
+        {
+            let movie = document.getElementById(id);
+            switch (fname)
+            {
+                case 'reset':
+                    movie.currentTime = 0;
+                    break;
+                case 'backup':
+                    movie.currentTime -= 5;
+                    break;
+            }
+        }
         """
     )
-    page.add_loadjs('jQuery(".movie").playbackRate=5;')
+    page.add_style(
+        """
+        .char_btn {font-size: 2.0em;}
+        """
+    )
     heading = f'Overview of {indir.absolute()} {len(files)} images in dir max {maxfiles} per run'
     page.add(PageItemHeader(heading, 2))
     page.add_blanks(2)
     page.add(form)
     html = page.get_html()
-    ofile = outdir / 'index.html'
+    ofile = indir / 'index.html'
     with ofile.open('w') as ofp:
         print(html, file=ofp)
 
     logger.info(f'wrote {ofile.absolute()}')
     webbrowser.open_new_tab(f'file://{ofile.absolute()}')
+
 
 if __name__ == "__main__":
     main()
