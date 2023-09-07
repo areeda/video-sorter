@@ -33,12 +33,11 @@ import logging
 from pathlib import Path
 import re
 import subprocess
-import sys
+from _version import __version__
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
 __process_name__ = 'video-sorter'
-__version__ = '0.0.0'
 
 logger = None
 
@@ -51,7 +50,7 @@ def mkmp4(inq):
     """
     volume_pat = re.compile('.*max_volume: -([\\d.]+) dB')
     while True:
-        infile: Path|str = inq.get()
+        infile: Path | str = inq.get()
         if infile == 'DONE':
             break
         outfile = infile.with_suffix('.mp4')
@@ -101,11 +100,10 @@ def main():
 
     parser.add_argument('-v', '--verbose', action='count', default=1,
                         help='increase verbose output')
-    parser.add_argument('-V', '--version', action='version',
-                        version=__version__)
+    parser.add_argument('-V', '--version', action='version', version=__version__)
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
-    parser.add_argument('--indir', type=Path, nargs='+', help='Input file or directory')
+    parser.add_argument('--indir', type=Path, nargs='+', default=[Path('.')], help='Input file or directory')
 
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose

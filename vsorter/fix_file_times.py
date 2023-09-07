@@ -20,22 +20,18 @@
 #
 
 """"""
-import os
 import time
-
 start_time = time.time()
 
+import os
 import argparse
 import logging
 from pathlib import Path
-import re
-import subprocess
-import sys
+from _version import __version__
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
 __process_name__ = 'video-sorter'
-__version__ = '0.0.0'
 
 logger = None
 

@@ -20,9 +20,12 @@
 #
 """"""
 import configparser
-from pathlib import Path
+import subprocess
+
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
+
+import psutil
 
 m2g_default_config = """
     [movie2gif]
@@ -31,27 +34,31 @@ m2g_default_config = """
         delay = 20
         loop = 0
         speedup = 5
-        
 """
 
 vsorter_default_config = """
     [vsorter]
-        baseurl = http://127.0.0.1:5000
+        baseurl = http://127.0.0.1:8000
         outdir = indir
         dirs = good, fair, other, trash
         imgperpage = 30
+        height = 500
         nproc = 4
         speeds = 0.25, 0.5, 1, 2, 3, 4 ,5
 """
 
 vsorter_imovie_config = """
     [vsorter]
-        baseurl = http://127.0.0.1:5000
+        baseurl = http://127.0.0.1:8000
         dirs = used, held, trash
+        outdir = indir
         imgperpage = 30
+        height = 500
         nproc = 4
         speeds = 0.25, 0.5, 1, 2, 3, 4 ,5
 """
+
+
 def get_config(path):
     """
     Read a configuration file
@@ -82,3 +89,19 @@ def get_def_config(prog: str) -> configparser.ConfigParser:
     if def_config:
         config.read_string(def_config)
     return config
+
+
+def start_gunicorn():
+    needs_start = True
+    for p in psutil.process_iter():
+        try:
+            if 'python' in p.name():
+                for cmd in p.cmdline():
+                    if 'gunicorn' in cmd:
+                        needs_start = False
+                        break
+        except psutil.Error:
+            pass
+    if needs_start:
+        cmd = ['gunicorn', '--daemon', 'vsorter.vsorter_flask_app:app']
+        subprocess.run(cmd)

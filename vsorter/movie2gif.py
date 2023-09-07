@@ -31,9 +31,7 @@ start_time = time.time()
 import argparse
 import logging
 from pathlib import Path
-import re
 import subprocess
-import sys
 
 import cv2
 from ._version import __version__
@@ -96,7 +94,7 @@ def main():
     elif str(config['movie2gif']['tmpdir']) != 'None':
         tmpd = Path(config['movie2gif']['tmpdir'])
     else:
-        tmpfd =  tempfile.TemporaryDirectory(prefix='movie2gif-')
+        tmpfd = tempfile.TemporaryDirectory(prefix='movie2gif-')
         tmpd = Path(tmpfd.name)
         tmp_cleanup = True
     video = Path(args.video)
