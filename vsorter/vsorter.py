@@ -196,6 +196,49 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
     return img_table
 
 
+def get_file_list(in_dir_files, ftype):
+    """
+    Build list of files to process from the files and directories specified on the command line
+    :param list in_dir_files: the command line argument or a list of path-like objects
+    :param str ftype: which type of files to use
+    :return tuple: files (list of files to process), dirs (list of directories visited) indir0 (first dir seen)
+    """
+
+    files = list()
+    direct_fcount = 0
+    indirs = dict()
+    indir0 = None       # first directory seen, used as default out directory
+    infile_dir = 'None'
+    inlist = in_dir_files
+
+    for idf in inlist:
+        in_dir_file = Path(idf)
+        if in_dir_file.is_dir():
+            inlist.extend(list(in_dir_file.glob('*')))
+            infile_dir = in_dir_file
+        elif in_dir_file.is_file():
+            infile = Path(in_dir_file)
+            if infile.suffix == ftype:
+                files.append(infile)
+                direct_fcount += 1
+                infile_dir = infile.parent
+            else:
+                continue
+        elif not in_dir_file.exists():
+            logger.critical(f'{in_dir_file.absolute()} does not exist.')
+            continue
+
+        indirstr = str(infile_dir) if infile_dir.is_dir() else str(infile_dir.parent)
+
+        if len(indirs) == 0:
+            indir0 = indirstr
+            indirs[indirstr] = 1
+        else:
+            indirs[indirstr] = 1 if indirstr not in indirs.keys() else indirs[indirstr] + 1
+
+    return files, indirs, indir0
+
+
 def main():
     global logger
     page = Page()
@@ -227,12 +270,6 @@ def main():
     parser.add_argument('--no-gunicorn-start', action='store_true',
                         help='Do not check if gunicorn is running and start if needed')
 
-    m2g_opts = parser.add_argument_group(title="movie2gif", description="option for making thumbnails")
-    m2g_opts.add_argument('--delay', type=int, help='time between frames in thumbnail, overrides config')
-    m2g_opts.add_argument('--scale', type=float,
-                          help='Scale factor for movie to thumbnale 0< scale < 1, overrides config')
-    m2g_opts.add_argument('--speedup', type=int, help='Number of frames to skip in movie to thumbnail, overrides config')
-
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose
 
@@ -251,8 +288,12 @@ def main():
     config_file = None
     try:
         if args.config:
-            config_file = args.config
-            config: ConfigParser = get_config(args.config)
+            config_file = Path(args.config)
+            if config_file.exists():
+                config: ConfigParser = get_config(args.config)
+            else:
+                logger.critical(f'Config file {config_file.absolute()} does not exist')
+                return
         elif args.incfg:
             config_file = 'internal config: ' + args.incfg
             config: ConfigParser = get_def_config(args.incfg)
@@ -280,38 +321,23 @@ def main():
     if args.outdir:
         outdir = args.outdir
     elif outdir is None:
-        raise TypeError('Unable to determine base output directory. '
-                        'Specify "outdir" in configuration file or on command line')
-    outdir = Path(outdir)
-    logger.info(f'Moving data to {outdir.absolute()}')
+        outdir = '${indir}'
 
     ftype = '.mp4'
-    files = list()
-    direct_fcount = 0
-    indirs = dict()
     maxfiles = args.max_img if args.max_img else int(config['vsorter']['imgperpage'])
     in_dir_files = args.in_dir_files
-    for idf in in_dir_files:
-        in_dir_file = Path(idf)
-        if in_dir_file.is_dir():
-            infiles = list(in_dir_file.glob(f'*{ftype}'))
-            if len(infiles) > 0:
-                logger.info(f'{len(infiles)} found in {in_dir_file.absolute()}')
-                for f in infiles:
-                    files.append(Path(f))
-                indirs[in_dir_file] = indirs[in_dir_file] + 1 if in_dir_file in indirs else 1
-        elif in_dir_file.is_file():
-            infile = Path(in_dir_file)
-            if infile.suffix == ftype:
-                files.append(infile)
-                direct_fcount += 1
-                infile_dir = infile.parent
-                indirs[infile_dir] = indirs[infile_dir] + 1 if infile_dir in indirs else 1
 
+    files, indirs, indir0 = get_file_list(in_dir_files, ftype)
     logger.info(f'{len(files)} files found in {len(indirs)} directory(s)')
     if len(files) == 0:
         return
 
+    if str(outdir) == '${indir}':
+        outdir = indir0
+
+    outdir = Path(outdir)
+    if not args.noout:
+        logger.info(f'Moving requested data to subdirectories of  {outdir.absolute()}')
     gif_out_q = Queue()
 
     maxfiles = min(len(files), maxfiles)
@@ -340,15 +366,16 @@ def main():
         speed = float(s)
         speeds.append(speed)
 
-    baseurl = config['vsorter']['baseurl'] if config['vsorter']['baseurl'] else 'http://127.0.0.1:5000/'
+    baseurl = config['vsorter']['baseurl'] if config['vsorter']['baseurl'] else 'http://127.0.0.1:8000/'
     form = PageForm(action=baseurl, id='movie_form', nosubmit=True)
-    indir = list(indirs.keys())[0]
-    form.add_hidden('indir', str(indir.absolute()))
+    indir = Path(indir0)
+    form.add_hidden('indir', indir0)
     form.add_hidden('basedir', str(outdir.absolute()))
     img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout, speeds)
     form.add(img_tbl)
 
-    page.title = indir.name
+    indir_txt = f'{Path(indir0).absolute().parent.name}/{Path(indir0).absolute().name}'
+    page.title = indir_txt
     page.include_js_cdn('jquery')
     page.add_style('.disposition {font-size: 1.4em;}')
     page.add_headjs(
@@ -411,7 +438,8 @@ def main():
 
         """
     )
-    heading = f'Overview of {indir.absolute()} {len(files)} images in dir max {maxfiles} per run'
+    heading = f'Overview of {Path(indir0).absolute()} {len(files)} images in {len(indirs)} ' \
+              f'directories max {maxfiles} per run'
     page.add(PageItemHeader(heading, 2))
     page.add_blanks(2)
     page.add(PageItemString('<div id="container">\n', escape=False))

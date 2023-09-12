@@ -20,11 +20,13 @@
 #
 
 """
-Convert a directory full of AVI movies to MP4 with audio amplification
+Convert a directory full of movies to MP4 with audio gain control
 """
 import os
 import time
 from multiprocessing import Queue
+
+from vsorter.movie_utils import get_outfile
 
 start_time = time.time()
 
@@ -33,7 +35,7 @@ import logging
 from pathlib import Path
 import re
 import subprocess
-from _version import __version__
+from ._version import __version__
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
@@ -42,49 +44,52 @@ __process_name__ = 'video-sorter'
 logger = None
 
 
-def mkmp4(inq):
+def mkmp4(inq, outdir=None, volume=None):
     """
     Convert to movie to mp4 maximizing volume
+    :param float volume: adjust audo gain to this level if lower
+    :param Path outdir: alternate directoryq
     :param Queue inq: input movie files
-    :return:
+    :return: None
     """
     volume_pat = re.compile('.*max_volume: -([\\d.]+) dB')
     while True:
         infile: Path | str = inq.get()
         if infile == 'DONE':
             break
-        outfile = infile.with_suffix('.mp4')
-        if outfile.exists():
-            continue
+        infile = Path(infile)
+        outfile = get_outfile(infile, outdir, 'mp4')
+        if not outfile.parent.exists():
+            outfile.parent.mkdir(0o755, parents=True)
 
-        # get audio volume:
-        cmd = ['ffmpeg', '-i', str(infile.absolute()), '-filter:a', 'volumedetect', '-f', 'null', '/dev/null']
-        vres = subprocess.run(cmd, capture_output=True)
-        if vres.returncode == 0:
-            serr = vres.stderr.decode('utf-8')
-            novolume = True
-            for line in serr.splitlines():
-                m = volume_pat.match(line)
-                if m:
-                    volume = float(m.group(1))
-                    novolume = False
-                    logger.info(f'{infile.name} input max volume = -{volume:.1f}')
+        cmd = ['ffmpeg', '-i', str(infile.absolute()), ]
 
-                    cmd = ['ffmpeg', '-i', str(infile.absolute()),]
-                    if volume > 0.9:
-                        cmd.extend(['-filter:a', f"volume={volume:.1f}dB"])
-                    cmd.append(str(outfile.absolute()))
-                    cvtres = subprocess.run(cmd, capture_output=True)
-                    if cvtres.returncode != 0:
-                        logger.info(f'ffmpeg failed to convert {infile.name} to mp4')
-                    else:
-                        if outfile.exists():
-                            astat = infile.stat()
-                            os.utime(outfile, (astat.st_atime, astat.st_mtime))
-            if novolume:
-                logger.critical(f'Could not find volume for {infile.name}')
+        if volume is not None:
+            # get audio volume:
+            cmd = ['ffmpeg', '-i', str(infile.absolute()), '-filter:a', 'volumedetect', '-f', 'null', '/dev/null']
+            vres = subprocess.run(cmd, capture_output=True)
+            if vres.returncode == 0:
+                serr = vres.stderr.decode('utf-8')
+                for line in serr.splitlines():
+                    m = volume_pat.match(line)
+                    if m:
+                        volume = float(m.group(1))
+                        logger.info(f'{infile.name} input max volume = -{volume:.1f}')
+
+                        if volume >= 11:
+                            vol_increase = volume - 10
+                            cmd.extend(['-filter:a', f"volume={vol_increase:.1f}dB"])
+            else:
+                logger.critical(f'ffmpg failed to find volume for {infile.name}')
+
+        cmd.append(str(outfile.absolute()))
+        cvtres = subprocess.run(cmd, capture_output=True)
+        if cvtres.returncode != 0:
+            logger.info(f'ffmpeg failed to convert {infile.name} to mp4')
         else:
-            logger.critical(f'ffmpg failed to fin volume for {infile.name}')
+            if outfile.exists():
+                astat = infile.stat()
+                os.utime(outfile, (astat.st_atime, astat.st_mtime))
 
 
 def main():
@@ -103,7 +108,10 @@ def main():
     parser.add_argument('-V', '--version', action='version', version=__version__)
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
-    parser.add_argument('--indir', type=Path, nargs='+', default=[Path('.')], help='Input file or directory')
+    parser.add_argument('indir', type=Path, nargs='*', default=[Path('.')], help='Input file or directory')
+    parser.add_argument('--outdir', type=Path, help='Put new files in this directory, default is use input dir')
+    parser.add_argument('--volume', type=float, default=-10.0, help='Adjust audio max gain to this dB')
+    parser.add_argument('--novol', action='store_true', help='Disable auto volumed control')
 
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose
@@ -126,7 +134,11 @@ def main():
     indir: Path
     for indir in indirs:
         if indir.is_dir():
-            files.extend(indir.glob('*AVI'))
+            flist = indir.glob('*')
+            for file in flist:
+                spl = os.path.splitext(file)
+                if spl[1] in ['.avi', '.mov', '.mp4']:
+                    files.append(file)
             logger.info(f'{len(files)} found in {indir.absolute()}')
         elif indir.is_file() and indir.name.endswith('AVI'):
             files.append(indir)
@@ -137,7 +149,7 @@ def main():
         inq.put(f)
 
     inq.put('DONE')
-    mkmp4(inq)
+    mkmp4(inq, args.outdir, args.volume)
 
 
 if __name__ == "__main__":
