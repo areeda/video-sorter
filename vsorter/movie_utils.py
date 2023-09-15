@@ -109,18 +109,21 @@ def start_gunicorn():
         subprocess.run(cmd)
 
 
-def get_outfile(infile, outdir=None, ext='mp4'):
+def get_outfile(infile, outdir=None, ext=None):
     """
     get a unique output file name of the proper type, NB: not thread safe if multiple programs
     are working on the same file
     :param Path infile: path to an input file
     :param Path outdir: output directory or None to use infile's parent directory
-    :param str ext: new file type/extension
+    :param str ext: new file type/extension, None -> use input extension
     :return Path: a path that does not exist too an output file
     """
     myinfile = Path(infile)
     myoutdir = outdir if outdir else infile.parent
-    myext = ext if ext.startswith('.') else '.' + ext
+    if ext is None:
+        myext = myinfile.suffix
+    else:
+        myext = ext if ext.startswith('.') else '.' + ext
 
     n = 0
 

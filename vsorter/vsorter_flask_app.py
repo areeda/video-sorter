@@ -7,6 +7,8 @@ from ja_webutils.Page import Page
 from ja_webutils.PageItem import PageItemHeader
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
+from vsorter.movie_utils import get_outfile
+
 app = Flask(__name__)
 
 
@@ -17,6 +19,7 @@ def process_vsort():  # put application's code here
     my_page = Page()
     basedir = request.form.get('basedir')
     basedir = Path(basedir) if basedir else None
+    replace = request.form.get('replace') == 'True'
     my_page.add(PageItemHeader(f"Selected movies moved to {basedir}", 2))
     table = PageTable()
     table.sorted = True
@@ -50,10 +53,12 @@ def process_vsort():  # put application's code here
                     mv_files = list(q.parent.glob(q.name))
                     for mv_file in mv_files:
                         dest = odir / mv_file.name
-                        if dest.exists():
+                        if dest.exists() and replace:
                             dest.unlink()
                             what_we_did.add_row(PageTableRow(f'{Path(mv_file).name} already existed at {disposition}'))
-                        shutil.move(mv_file, odir)
+                        else:
+                            dest = get_outfile(mv_file, odir)
+                        shutil.move(mv_file, str(dest.absolute()))
                         what_we_did.add_row(PageTableRow(f'Moved {Path(mv_file).name} to {disposition}'))
                 else:
                     what_we_did.add_row(PageTableRow(f'{odir} does not exist'))

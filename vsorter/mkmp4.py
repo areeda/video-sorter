@@ -39,12 +39,12 @@ from ._version import __version__
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
-__process_name__ = 'video-sorter'
+__process_name__ = Path(__file__).name
 
 logger = None
 
 
-def mkmp4(inq, outdir=None, volume=None):
+def mkmp4(inq, outdir=None, volume=None, noout=False):
     """
     Convert to movie to mp4 maximizing volume
     :param float volume: adjust audo gain to this level if lower
@@ -52,7 +52,8 @@ def mkmp4(inq, outdir=None, volume=None):
     :param Queue inq: input movie files
     :return: None
     """
-    volume_pat = re.compile('.*max_volume: -([\\d.]+) dB')
+    volume_max_pat = re.compile('.*max_volume: -([\\d.]+) dB')
+    volume_mean_pat = re.compile('.*mean_volume: -([\\d.]+) dB')
     while True:
         infile: Path | str = inq.get()
         if infile == 'DONE':
@@ -69,27 +70,34 @@ def mkmp4(inq, outdir=None, volume=None):
             cmd = ['ffmpeg', '-i', str(infile.absolute()), '-filter:a', 'volumedetect', '-f', 'null', '/dev/null']
             vres = subprocess.run(cmd, capture_output=True)
             if vres.returncode == 0:
+                volume = list()
                 serr = vres.stderr.decode('utf-8')
                 for line in serr.splitlines():
-                    m = volume_pat.match(line)
+                    m = volume_max_pat.match(line)
                     if m:
-                        volume = float(m.group(1))
-                        logger.info(f'{infile.name} input max volume = -{volume:.1f}')
+                        volume.append(float(m.group(1)))
+                    else:
+                        m = volume_mean_pat.match(line)
+                        if m:
+                            volume.append(float(m.group(1)))
+                if len(volume) == 2:
+                    logger.info(f'{infile.name} input volume mean: -{volume[0]:.1f} dB, max: -{volume[1]:.1f} dB')
 
-                        if volume >= 11:
-                            vol_increase = volume - 10
-                            cmd.extend(['-filter:a', f"volume={vol_increase:.1f}dB"])
+                    if volume[1] >= 11:
+                        vol_increase = volume[1] - 10
+                        cmd.extend(['-filter:a', f"volume={vol_increase:.1f}dB"])
             else:
                 logger.critical(f'ffmpg failed to find volume for {infile.name}')
 
-        cmd.append(str(outfile.absolute()))
-        cvtres = subprocess.run(cmd, capture_output=True)
-        if cvtres.returncode != 0:
-            logger.info(f'ffmpeg failed to convert {infile.name} to mp4')
-        else:
-            if outfile.exists():
-                astat = infile.stat()
-                os.utime(outfile, (astat.st_atime, astat.st_mtime))
+        if not noout:
+            cmd.append(str(outfile.absolute()))
+            cvtres = subprocess.run(cmd, capture_output=True)
+            if cvtres.returncode != 0:
+                logger.info(f'ffmpeg failed to convert {infile.name} to mp4')
+            else:
+                if outfile.exists():
+                    astat = infile.stat()
+                    os.utime(outfile, (astat.st_atime, astat.st_mtime))
 
 
 def main():
@@ -111,7 +119,8 @@ def main():
     parser.add_argument('indir', type=Path, nargs='*', default=[Path('.')], help='Input file or directory')
     parser.add_argument('--outdir', type=Path, help='Put new files in this directory, default is use input dir')
     parser.add_argument('--volume', type=float, default=-10.0, help='Adjust audio max gain to this dB')
-    parser.add_argument('--novol', action='store_true', help='Disable auto volumed control')
+    parser.add_argument('--novol', action='store_true', help='Disable auto volume control')
+    parser.add_argument('--noout', action='store_true', help='Do not create output. Report volume mean and max')
 
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose
@@ -137,10 +146,10 @@ def main():
             flist = indir.glob('*')
             for file in flist:
                 spl = os.path.splitext(file)
-                if spl[1] in ['.avi', '.mov', '.mp4']:
+                if spl[1].lower() in ['.avi', '.mov', '.mp4']:
                     files.append(file)
             logger.info(f'{len(files)} found in {indir.absolute()}')
-        elif indir.is_file() and indir.name.endswith('AVI'):
+        elif indir.is_file() and indir.suffix.lower() in ['.avi', '.mov', '.mp4']:
             files.append(indir)
             logger.info(f'added {indir.absolute()}')
 
@@ -149,11 +158,10 @@ def main():
         inq.put(f)
 
     inq.put('DONE')
-    mkmp4(inq, args.outdir, args.volume)
+    mkmp4(inq, args.outdir, args.volume, args.noout)
 
 
 if __name__ == "__main__":
-
     main()
     if logger is None:
         logging.basicConfig()

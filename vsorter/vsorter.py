@@ -159,7 +159,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
         next_char = PageItemString('&#x23ED;', escape=False, class_name='char_btn')
 
         bkup_char = PageItemString('&#x21ba;', escape=False, class_name='char_btn')
-        pause_char = PageItemString('&#x23F8;', escape=False, class_name='char_btn')
+        play_pause_char = PageItemString('&#x23EF;', escape=False, class_name='char_btn')
         # nbsp = PageItemString('&nbsp;', escape=False, class_name='char_btn')
 
         btn = PageFormButton(name='reset_btn', contents=reset_char, type='button', class_name='char_btn')
@@ -170,8 +170,8 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
         btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'backup\');')
         pil.add(btn)
 
-        btn = PageFormButton(name='pause', contents=pause_char, type='button', class_name='char_btn')
-        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'pause\');')
+        btn = PageFormButton(name='pause', contents=play_pause_char, type='button', class_name='char_btn')
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'play_pause\');')
         pil.add(btn)
 
         if next_row_id != 'none':
@@ -239,17 +239,12 @@ def get_file_list(in_dir_files, ftype):
     return files, indirs, indir0
 
 
-def main():
-    global logger
-    page = Page()
-
-    logging.basicConfig()
-    logger = logging.getLogger(__process_name__)
-    logger.setLevel(logging.DEBUG)
-
-    parser = argparse.ArgumentParser(description=__doc__, prog=__process_name__,
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
+def parser_add_args(parser):
+    """
+    Set up the command parser
+    :param argparse.ArgumentParser parser:
+    :return: None but parser object is updated
+    """
     parser.add_argument('-v', '--verbose', action='count', default=1,
                         help='increase verbose output')
     parser.add_argument('-V', '--version', action='version',
@@ -260,15 +255,31 @@ def main():
     parser.add_argument('in_dir_files', type=Path, default=[Path('.')], nargs='*',
                         help='Path to directory or files with movies(.avi, mp4, mov) files')
     parser.add_argument('--outdir', type=Path, help='Where to put html, default= same as indir')
+    parser.add_argument('--baseurl')
     parser.add_argument('--config', type=Path, help='Vsorter configuration file default = ~/.vsorter.ini if'
                                                     'it exists else internam imovie config')
     parser.add_argument('--noout', action="store_true",
                         help='do not creat output dirs or add disposition radio buttons')
-    parser.add_argument('--incfg', help='Select included config (default, imovie)')
+    parser.add_argument('--incfg', help='Select included config (vsorter, imovie)')
     parser.add_argument('--max-img', type=int, help='How many videos on the page')
     parser.add_argument('--print-config', action="store_true", help='Print the included config to make it easy to edit')
     parser.add_argument('--no-gunicorn-start', action='store_true',
                         help='Do not check if gunicorn is running and start if needed')
+    parser.add_argument('--replace', action='store_true',
+                        help='Overwrite destination. By default make new file if destination ecxists.')
+
+
+def main():
+    global logger
+    page = Page()
+
+    logging.basicConfig()
+    logger = logging.getLogger(__process_name__)
+    logger.setLevel(logging.DEBUG)
+
+    parser = argparse.ArgumentParser(description=__doc__, prog=__process_name__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_add_args(parser)
 
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose
@@ -371,6 +382,7 @@ def main():
     indir = Path(indir0)
     form.add_hidden('indir', indir0)
     form.add_hidden('basedir', str(outdir.absolute()))
+    form.add_hidden('replace', 'True' if args.replace else 'False')
     img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout, speeds)
     form.add(img_tbl)
 
@@ -413,6 +425,18 @@ def main():
                     break;
                 case 'pause':
                     movie.pause();
+                    break;
+                    
+                case 'play_pause':
+                    isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
+                    if (isVideoPlaying)
+                    {
+                        movie.pause();
+                    }
+                    else
+                    {
+                        movie.play();
+                    }
                     break;
             }
         }
