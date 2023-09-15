@@ -42,22 +42,22 @@ vsorter_default_config = """
     [vsorter]
         baseurl = http://127.0.0.1:8000
         outdir = ${indir}
-        dirs = good, fair, other, trash
+        dirs = good, fair, other, furtherReview, trash
         imgperpage = 30
         height = 500
         nproc = 4
-        speeds = 0.25, 0.5, 1, 2, 3, 4 ,5
+        speeds = 0.25, 0.5, 1, 1.5, 2, 3, 4 ,5
 """
 
 vsorter_imovie_config = """
     [vsorter]
         baseurl = http://127.0.0.1:8000
-        dirs = used, held, trash
+        dirs = used, held, furtherReview trash
         outdir = ${indir}
         imgperpage = 100
         height = 500
         nproc = 4
-        speeds = 0.25, 0.5, 1, 2, 3, 4 ,5
+        speeds = 0.25, 0.5, 1, 1.5, 2, 3, 4 ,5
 """
 
 
@@ -109,12 +109,13 @@ def start_gunicorn():
         subprocess.run(cmd)
 
 
-def get_outfile(infile, outdir=None, ext=None):
+def get_outfile(infile, outdir=None, ndigits=2, ext=None):
     """
     get a unique output file name of the proper type, NB: not thread safe if multiple programs
     are working on the same file
     :param Path infile: path to an input file
     :param Path outdir: output directory or None to use infile's parent directory
+    :param int ndigits: precision of version number
     :param str ext: new file type/extension, None -> use input extension
     :return Path: a path that does not exist too an output file
     """
@@ -131,6 +132,6 @@ def get_outfile(infile, outdir=None, ext=None):
 
     while outfile.exists():
         n += 1
-        outfile = myoutdir / f'{myinfile.with_suffix("").name}-{n:02d}{myext}'
+        outfile = myoutdir / f'{myinfile.with_suffix("").name}-{n:0{ndigits}d}{myext}'
 
     return outfile
