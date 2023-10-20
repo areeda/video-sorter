@@ -56,7 +56,7 @@ def parser_add_args(parser):
                         version=__version__)
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
-    parser.add_argument('infiles', type=Path, nargs='*', default=Path('.'), help='Files, directories to scan')
+    parser.add_argument('infiles', type=Path, nargs='*', default=[Path('.')], help='Files, directories to scan')
 
 
 file_pattern = re.compile('^.+_([a-zA-Z0-9]+)_.*mp4')
@@ -122,7 +122,7 @@ def main():
         print(f'{camera:{maxlen}s}: {count}')
         total += count
 
-    print(f'{"Total":{maxlen}s}: {total}')
+    print(f'============\n{"Total":{maxlen}s}: {total}')
 
 
 if __name__ == "__main__":

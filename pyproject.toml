@@ -57,7 +57,7 @@ license-files = [ "LICENSE" ]
 write_to = "vsorter/_version.py"
 
 [project.scripts]
-blink-summary = "vsorter.blink_summary"
+blink-summary = "vsorter.blink_summary:main"
 mkmp4 = "vsorter.mkmp4:main"
 vsorter-fix-times = "vsorter.fix_file_times:main"
 movie2gif = "vsorter.movie2gif:main"
