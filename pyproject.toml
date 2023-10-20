@@ -18,7 +18,7 @@ build-backend = "setuptools.build_meta"
   ]
   classifiers = [
     "Development Status :: 3 - Alpha",
-    "Environment :: Console (Text Based)",
+    "Environment :: Console",
     "Environment :: Web Environment",
     "Framework :: Flask",
     "Intended Audience :: Developers",
