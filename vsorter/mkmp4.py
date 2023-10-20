@@ -59,7 +59,7 @@ def mkmp4(inq, outdir=None, volume=None, noout=False):
         if infile == 'DONE':
             break
         infile = Path(infile)
-        outfile = get_outfile(infile, outdir, 'mp4')
+        outfile = get_outfile(infile, outdir, ext='mp4')
         if not outfile.parent.exists():
             outfile.parent.mkdir(0o755, parents=True)
 
@@ -100,17 +100,12 @@ def mkmp4(inq, outdir=None, volume=None, noout=False):
                     os.utime(outfile, (astat.st_atime, astat.st_mtime))
 
 
-def main():
-    global logger
-
-    logging.basicConfig()
-
-    logger = logging.getLogger(__process_name__)
-    logger.setLevel(logging.DEBUG)
-
-    parser = argparse.ArgumentParser(description=__doc__, prog=__process_name__,
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
+def parser_add_args(parser):
+    """
+    Set up the command parser
+    :param argparse.ArgumentParser parser:
+    :return: None but parser object is updated
+    """
     parser.add_argument('-v', '--verbose', action='count', default=1,
                         help='increase verbose output')
     parser.add_argument('-V', '--version', action='version', version=__version__)
@@ -122,6 +117,18 @@ def main():
     parser.add_argument('--novol', action='store_true', help='Disable auto volume control')
     parser.add_argument('--noout', action='store_true', help='Do not create output. Report volume mean and max')
 
+
+def main():
+    global logger
+
+    logging.basicConfig()
+
+    logger = logging.getLogger(__process_name__)
+    logger.setLevel(logging.DEBUG)
+
+    parser = argparse.ArgumentParser(description=__doc__, prog=__process_name__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_add_args(parser)
     args = parser.parse_args()
     verbosity = 0 if args.quiet else args.verbose
 

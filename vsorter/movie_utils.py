@@ -52,7 +52,7 @@ vsorter_default_config = """
 vsorter_imovie_config = """
     [vsorter]
         baseurl = http://127.0.0.1:8000
-        dirs = used, held, furtherReview trash
+        dirs = used, held, furtherReview, trash
         outdir = ${indir}
         imgperpage = 100
         height = 500

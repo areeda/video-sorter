@@ -94,7 +94,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
     blink_dir_pat = re.compile('(\\d\\d)-(\\d\\d)-(\\d\\d)')
     blink_file_pat = re.compile('(\\d\\d)-(\\d\\d)-(\\d\\d)_.+mp4')
     img_table = PageTable()
-    hdr = ['ID', 'Disposition', 'Movie, click to open']
+    hdr = ['ID', 'Disposition', 'Movie']
     hdr_row = PageTableRow(hdr, RowType.HEAD)
     img_table.add_row(hdr_row)
     img_num = 0
@@ -257,7 +257,7 @@ def parser_add_args(parser):
     parser.add_argument('--outdir', type=Path, help='Where to put html, default= same as indir')
     parser.add_argument('--baseurl')
     parser.add_argument('--config', type=Path, help='Vsorter configuration file default = ~/.vsorter.ini if'
-                                                    'it exists else internam imovie config')
+                                                    'it exists else internal "vsorter" config')
     parser.add_argument('--noout', action="store_true",
                         help='do not creat output dirs or add disposition radio buttons')
     parser.add_argument('--incfg', help='Select included config (vsorter, imovie)')
@@ -465,6 +465,9 @@ def main():
     heading = f'Overview of {Path(indir0).absolute()} {len(files)} images in {len(indirs)} ' \
               f'directories max {maxfiles} per run'
     page.add(PageItemHeader(heading, 2))
+    heading2 = f'Output directories will be under {outdir.absolute()}'
+    page.add(PageItemHeader(heading2, 2))
+
     page.add_blanks(2)
     page.add(PageItemString('<div id="container">\n', escape=False))
     submit_btn = PageFormButton('submit', 'Submit', class_name='char_btn')
