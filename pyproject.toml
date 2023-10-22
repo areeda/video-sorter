@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
   name = "video-sorter"
-  description = "A collection of small programs to work with lot o vieo files"
+  description = "A collection of small programs to work with lots of video files"
   readme = "README.md"
   authors = [
     { name = "Joseph Areeda", email = "joe@areeda.com" },

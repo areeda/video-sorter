@@ -17,22 +17,40 @@ that they are out of the frame before the recording starts.
 This project is an attempt to facilitate preprocessing and sorting the image files into different
 directories.
 
-The directories we use to sort incoming files are:
-- Good: probably will include part of it
-- Poor: contains something interesting enough to not delete it
-- Other: Something interesting but on the topic
-- Trash: To be deleted
+The directories we use to sort incoming files are based on what we expect. For example
+when we look at the blink cameras we separate them by animal after we all out people:
+- bird
+- cat
+- coyote
+- possum
+- racoon
+- rat
+- skunk
+- squirrel
+- other
+- furtherReview
+- trash
 
 ## The workflow
-If the input movie recordings are
+The `vsorter` program leverages any modern browser to present the movies with the option to display 
 
 ### preprocessing
+If the input movie recordings are in AVI format the `mkmp4` program will convert the video 
+and adjust the volume.
 
+MP4 movies can be bassed through the same program for automatic gain control
 
 ## Programs
 
 ### vsorter - command line preprocessor
-
-### movie2gif - utility to create animated thumbnails
+The `vsorter` program leverages any modern browser to present the movies with the option to display 
+at up to 5x speed or as slow as 0.25x. When the `SUBMIT` button is pressed the indiviual movies
+are moved to the apropriate directories.
 
 ### vmover - flask app to respond to the web page decisions
+The actual moving is done in the background by a Python web application running on the "localhost".
+
+### blink-summary - count movies by camera
+When we have a lot of movies to sort I like to do it by camera. This program looks at the
+downloaded movies in a directory tree and count how many are from each camera.
+

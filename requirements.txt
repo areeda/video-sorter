@@ -1,0 +1,13 @@
+
+python >=3.10,<3.12
+pip
+pytz
+setuptools
+ffmpeg
+flask
+gunicorn
+imagemagick
+numpy
+opencv
+ja-webutils
+video-sorter
