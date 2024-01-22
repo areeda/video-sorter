@@ -196,9 +196,10 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
     return img_table
 
 
-def get_file_list(in_dir_files, ftype):
+def get_file_list(in_dir_files, ftype, match):
     """
     Build list of files to process from the files and directories specified on the command line
+    :param str match: regex to match file name
     :param list in_dir_files: the command line argument or a list of path-like objects
     :param str ftype: which type of files to use
     :return tuple: files (list of files to process), dirs (list of directories visited) indir0 (first dir seen)
@@ -210,6 +211,7 @@ def get_file_list(in_dir_files, ftype):
     indir0 = None       # first directory seen, used as default out directory
     infile_dir = 'None'
     inlist = in_dir_files
+    matcher = re.compile(match, re.IGNORECASE) if match is not None else None
 
     for idf in inlist:
         in_dir_file = Path(idf)
@@ -218,7 +220,7 @@ def get_file_list(in_dir_files, ftype):
             infile_dir = in_dir_file
         elif in_dir_file.is_file():
             infile = Path(in_dir_file)
-            if infile.suffix == ftype:
+            if infile.suffix == ftype and (matcher is None or matcher.match(infile.name)):
                 files.append(infile)
                 direct_fcount += 1
                 infile_dir = infile.parent
@@ -258,6 +260,7 @@ def parser_add_args(parser):
     parser.add_argument('--baseurl')
     parser.add_argument('--config', type=Path, help='Vsorter configuration file default = ~/.vsorter.ini if'
                                                     'it exists else internal "vsorter" config')
+    parser.add_argument('--match', help='regex for selecting file names such as blink camera name')
     parser.add_argument('--noout', action="store_true",
                         help='do not creat output dirs or add disposition radio buttons')
     parser.add_argument('--incfg', help='Select included config (vsorter, imovie)')
@@ -338,7 +341,15 @@ def main():
     maxfiles = args.max_img if args.max_img else int(config['vsorter']['imgperpage'])
     in_dir_files = args.in_dir_files
 
-    files, indirs, indir0 = get_file_list(in_dir_files, ftype)
+    match: str = args.match
+    if match is None:
+        match = '.*'
+    else:
+        if not match.startswith('^'):
+            match = '^.*' + match
+        if not match.endswith('$'):
+            match += '.*$'
+    files, indirs, indir0 = get_file_list(in_dir_files, ftype, match)
     logger.info(f'{len(files)} files found in {len(indirs)} directory(s)')
     if len(files) == 0:
         return
@@ -390,6 +401,7 @@ def main():
     page.title = indir_txt
     page.include_js_cdn('jquery')
     page.add_style('.disposition {font-size: 1.4em;}')
+    page.add_style('[type="radio"] {height: 20px; width: 20px;}')
     page.add_headjs(
         """
         default_speed = 3;

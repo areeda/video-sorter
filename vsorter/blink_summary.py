@@ -118,7 +118,10 @@ def main():
     for k in cameras.keys():
         maxlen = max(maxlen, len(k))
 
-    for camera, count in cameras.items():
+    skeys = list(cameras.keys())
+    skeys.sort()
+    for camera in cameras.keys():
+        count = cameras[camera]
         print(f'{camera:{maxlen}s}: {count}')
         total += count
 
