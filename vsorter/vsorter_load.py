@@ -146,7 +146,7 @@ def main():
         for day in day_dirs:
             movie_files = list(day.glob('*mp4'))
             logger.debug(f'There are {len(movie_files)} from {day.name}')
-            move_files(day.name, movie_files, Path(config['vsorter']['indir']), False)
+            move_files(day.name, movie_files, Path(config['vsorter']['indir']), True)
 
 
 
