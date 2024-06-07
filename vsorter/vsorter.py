@@ -254,12 +254,7 @@ def parser_add_args(parser):
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
     parser.add_argument('--nproc', type=int, help='number of parallel movie2gif jobs to run')
-    parser.add_argument('in_dir_files', type=Path, default=[Path('.')], nargs='*',
-                        help='Path to directory or files with movies(.avi, mp4, mov) files')
-    parser.add_argument('--outdir', type=Path, help='Where to put html, default= same as indir')
-    parser.add_argument('--baseurl')
-    parser.add_argument('--config', type=Path, help='Vsorter configuration file default = ~/.vsorter.ini if'
-                                                    'it exists else internal "vsorter" config')
+
     parser.add_argument('--match', help='regex for selecting file names such as blink camera name')
     parser.add_argument('--noout', action="store_true",
                         help='do not creat output dirs or add disposition radio buttons')
