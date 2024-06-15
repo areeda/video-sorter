@@ -82,5 +82,17 @@ def process_vsort():  # put application's code here
     return ret_html
 
 
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    base_url = request.base_url
+    page = Page
+    page.title = 'vsorter settings'
+    page.add(PageItemHeader('Video sorter settings', 2))
+
+    html = page.get_html()
+    return html
+
+
+
 if __name__ == '__main__':
     app.run()
