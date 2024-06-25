@@ -29,6 +29,6 @@ from flask import Flask
 app = Flask(__name__)
 
 
-@app.route('/vsorter_action.py')
+@app.route('/vsorter_action')
 def vsorter_action():
     return 'Hello, World!'

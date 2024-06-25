@@ -4,15 +4,21 @@ from pathlib import Path
 
 from flask import Flask, request
 from ja_webutils.Page import Page
-from ja_webutils.PageItem import PageItemHeader
+from ja_webutils.PageItem import PageItemHeader, PageItemLink
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
 from vsorter.movie_utils import get_outfile
 
 app = Flask(__name__)
 
-
 @app.route('/', methods=['GET', 'POST'])
+def home():
+    page = Page
+    set_uri = PageItemLink('/settings', 'settings')
+    page.add(set_uri)
+    return page.get_html()
+
+@app.route('/move_files', methods=['GET', 'POST'])
 def process_vsort():  # put application's code here
     keys = request.form.keys()
     disp_pat = re.compile("disposition_(\\d+)")
@@ -92,6 +98,10 @@ def settings():
     html = page.get_html()
     return html
 
+
+@app.route('/vsorter_action')
+def vsorter_action():
+    return 'Hello, World!'
 
 
 if __name__ == '__main__':
