@@ -11,12 +11,17 @@ from vsorter.movie_utils import get_outfile
 
 app = Flask(__name__)
 
+
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    page = Page
-    set_uri = PageItemLink('/settings', 'settings')
-    page.add(set_uri)
-    return page.get_html()
+    try:
+        page = Page()
+        set_uri = PageItemLink('/settings', 'settings')
+        page.add(set_uri)
+        html = page.get_html()
+    except Exception as ex:
+        html = f'Error {ex}'
+    return html
 
 @app.route('/move_files', methods=['GET', 'POST'])
 def process_vsort():  # put application's code here
@@ -91,7 +96,7 @@ def process_vsort():  # put application's code here
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     base_url = request.base_url
-    page = Page
+    page = Page()
     page.title = 'vsorter settings'
     page.add(PageItemHeader('Video sorter settings', 2))
 

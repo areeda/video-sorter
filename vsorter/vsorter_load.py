@@ -139,6 +139,10 @@ def main():
         logger.critical(f'No thumb drive found')
         exit(4)
 
+    nfiles = 0
+    nbytes = 0
+    xfer_start = time.time()
+
     month_dirs = list(indir.glob('*'))
     for month in month_dirs:
         logger.debug(f'Month dir: {month.absolute()}')
@@ -146,10 +150,14 @@ def main():
         for day in day_dirs:
             movie_files = list(day.glob('*mp4'))
             logger.debug(f'There are {len(movie_files)} from {day.name}')
+            for file in movie_files:
+                nfiles += 1
+                nbytes += Path(file).stat().st_size
             move_files(day.name, movie_files, Path(config['vsorter']['indir']), True)
 
-
-
+    xfer_time = time.time()
+    xfer_rate = nbytes / xfer_time / 1000
+    logger.info(f'{nfiles} transferred in {xfer_time:.1f}s ({xfer_rate:.0f} KB/s')
 
 
 if __name__ == "__main__":
