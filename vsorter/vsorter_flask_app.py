@@ -23,6 +23,7 @@ def home():
         html = f'Error {ex}'
     return html
 
+
 @app.route('/move_files', methods=['GET', 'POST'])
 def process_vsort():  # put application's code here
     keys = request.form.keys()
@@ -95,7 +96,6 @@ def process_vsort():  # put application's code here
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    base_url = request.base_url
     page = Page()
     page.title = 'vsorter settings'
     page.add(PageItemHeader('Video sorter settings', 2))

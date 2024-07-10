@@ -117,7 +117,7 @@ def get_outfile(infile, outdir=None, ndigits=2, ext=None):
     :param Path outdir: output directory or None to use infile's parent directory
     :param int ndigits: precision of version number
     :param str ext: new file type/extension, None -> use input extension
-    :return Path: a path that does not exist too an output file
+    :return Path: a path that does not exist to an output file
     """
     myinfile = Path(infile)
     myoutdir = outdir if outdir else infile.parent

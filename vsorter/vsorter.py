@@ -30,7 +30,7 @@ start_time = time.time()
 import os
 from ja_webutils.Page import Page
 from ja_webutils.PageForm import PageForm, PageFormButton
-from ja_webutils.PageItem import PageItemRadioButton, PageItemHeader, PageItemLink,\
+from ja_webutils.PageItem import PageItemRadioButton, PageItemHeader, PageItemLink, \
     PageItemBlanks, PageItemVideo, PageItemArray, PageItemString
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
@@ -438,7 +438,7 @@ def main():
                 case 'pause':
                     movie.pause();
                     break;
-                    
+
                 case 'play_pause':
                     isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
                     if (isVideoPlaying)

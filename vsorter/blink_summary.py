@@ -29,8 +29,6 @@ import argparse
 import logging
 from pathlib import Path
 import re
-import subprocess
-import sys
 
 try:
     from ._version import __version__

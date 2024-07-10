@@ -30,8 +30,6 @@ start_time = time.time()
 import argparse
 import logging
 from pathlib import Path
-import re
-import subprocess
 import sys
 import traceback
 
@@ -69,7 +67,7 @@ def parser_add_args(parser):
 def move_files(day, movie_files, odir, delete_em=False):
     """
 
-    :param str day: day label eg 24-06-06
+    :param str day: day label e.g. 24-06-06
     :param list[Path] movie_files: path to individual files
     :param Path odir: where to put files
     :param bool delete_em: true -> move else copy
@@ -86,7 +84,6 @@ def move_files(day, movie_files, odir, delete_em=False):
             shutil.move(movie, ofile)
         else:
             shutil.copy(movie, ofile)
-
 
 
 def main():
@@ -131,12 +128,12 @@ def main():
             logger.debug(f'Blink thumb drive {dev}')
             indir = dev / 'blink_backup'
             if not indir.exists():
-                logger.info(f'Possible thumb drive does not have "blink_backup" subdir')
+                logger.info('Possible thumb drive does not have "blink_backup" subdir')
                 indir = None
             else:
                 break
     if indir is None:
-        logger.critical(f'No thumb drive found')
+        logger.critical('No thumb drive found')
         exit(4)
 
     nfiles = 0
@@ -155,7 +152,7 @@ def main():
                 nbytes += Path(file).stat().st_size
             move_files(day.name, movie_files, Path(config['vsorter']['indir']), True)
 
-    xfer_time = time.time()
+    xfer_time = time.time() - xfer_start
     xfer_rate = nbytes / xfer_time / 1000
     logger.info(f'{nfiles} transferred in {xfer_time:.1f}s ({xfer_rate:.0f} KB/s')
 
