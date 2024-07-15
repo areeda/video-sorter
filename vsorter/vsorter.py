@@ -389,7 +389,8 @@ def main():
         speeds.append(speed)
 
     baseurl = config['vsorter']['baseurl'] if config['vsorter']['baseurl'] else 'http://127.0.0.1:8000/'
-    form = PageForm(action=baseurl, id='movie_form', nosubmit=True)
+    move_files_url = baseurl + '/move_files'
+    form = PageForm(action=move_files_url, id='movie_form', nosubmit=True)
     indir = Path(indir0)
     form.add_hidden('indir', indir0)
     form.add_hidden('basedir', str(outdir.absolute()))
