@@ -93,6 +93,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
     """
     blink_dir_pat = re.compile('(\\d\\d)-(\\d\\d)-(\\d\\d)')
     blink_file_pat = re.compile('(\\d\\d)-(\\d\\d)-(\\d\\d)_.+mp4')
+    blink_file_dt_pat = re.compile('(\\d\\d-\\d\\d-\\d\\d)T(\\d\\d-\\d\\d-\\d\\d)_.+mp4')
     img_table = PageTable()
     hdr = ['ID', 'Disposition', 'Movie']
     hdr_row = PageTableRow(hdr, RowType.HEAD)
@@ -137,9 +138,14 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
         movie_name = movie_path.name
         pmatch = blink_dir_pat.match(movie_parent)
         fmatch = blink_file_pat.match(movie_name)
+        fmatch2 = blink_file_dt_pat.match(movie_name)
+        blink_time = None
         if pmatch and fmatch:
             blink_time = datetime.datetime(2000 + int(pmatch.group(1)), int(pmatch.group(2)), int(pmatch.group(3)),
                                            int(fmatch.group(1)), int(fmatch.group(2)), int(fmatch.group(3)))
+        elif fmatch2:
+            blink_time = datetime.datetime.strptime(f'{fmatch2.group(1)} {fmatch2.group(2)}', '%y-%m-%d %H-%M-%S')
+        if blink_time:
             bldt = f'Blink time:<br>{blink_time.strftime("%A %x %X")}<br><br>'
             pil.add(PageItemString(bldt, False))
         pil.add(PageItemString(f'{img_num} of {maximg}<br>', False))
