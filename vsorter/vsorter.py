@@ -79,7 +79,7 @@ def mkthumb(inq, outq):
                 outq.put((fpath, thumb_name))
 
 
-def mkhtml(movieq, odirs, form, maximg, noout, speeds):
+def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
     """
 
     :param Queue movieq: tuple (<path to full movie>, <path
@@ -148,7 +148,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
         if blink_time:
             bldt = f'Blink time:<br>{blink_time.strftime("%A %x %X")}<br><br>'
             pil.add(PageItemString(bldt, False))
-        pil.add(PageItemString(f'{img_num} of {maximg}<br>', False))
+        pil.add(PageItemString(f'{img_num} of {maximg}/{total_files}<br>', False))
         img_link = PageItemLink(f'file://{movie_path.absolute()}', f'{movie_path.name}', target='_blank')
         pil.add(img_link)
         pil.add(PageItemBlanks(2))
@@ -166,6 +166,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
 
         bkup_char = PageItemString('&#x21ba;', escape=False, class_name='char_btn')
         play_pause_char = PageItemString('&#x23EF;', escape=False, class_name='char_btn')
+        play_char = PageItemString('&#x25b9;', escape=False, class_name='char_btn')
         # nbsp = PageItemString('&nbsp;', escape=False, class_name='char_btn')
 
         btn = PageFormButton(name='reset_btn', contents=reset_char, type='button', class_name='char_btn')
@@ -178,6 +179,10 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds):
 
         btn = PageFormButton(name='pause', contents=play_pause_char, type='button', class_name='char_btn')
         btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'play_pause\');')
+        pil.add(btn)
+
+        btn = PageFormButton(name='play', contents=play_char, type='button', class_name='char_btn')
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'play\');')
         pil.add(btn)
 
         if next_row_id != 'none':
@@ -271,11 +276,50 @@ def parser_add_args(parser):
                         help='do not creat output dirs or add disposition radio buttons')
     parser.add_argument('--incfg', help='Select included config (vsorter, imovie)')
     parser.add_argument('--max-img', type=int, help='How many videos on the page')
-    parser.add_argument('--print-config', action="store_true", help='Print the included config to make it easy to edit')
+    parser.add_argument('--print-config', action="store_true",
+                        help='Print the included config to make it easy to edit')
     parser.add_argument('--no-gunicorn-start', action='store_true',
                         help='Do not check if gunicorn is running and start if needed')
+    parser.add_argument('--reverse', action='store_true', help='Reverse the order of files')
     parser.add_argument('--replace', action='store_true',
                         help='Overwrite destination. By default make new file if destination ecxists.')
+
+
+def find_config(args, logger):
+    """
+    find specified configuration file and do any variable substitutions
+    :param Namespace args: cli arguments
+    :param str|None incfg: name of an internal config file
+    :param logging.logger logger: ur logger
+    :return ConfigParser: config to use
+    """
+    config_file = args.config
+    try:
+        incfg = args.incfg
+        if config_file:
+            config_file = Path(config_file)
+            if config_file.exists():
+                config: ConfigParser = get_config(config_file)
+            else:
+                raise FileNotFoundError(f'Config file {config_file.absolute()} does not exist')
+
+        elif incfg:
+            config_file = 'internal config: ' + incfg
+            config: ConfigParser = get_def_config(incfg)
+        else:
+            default_config = Path().home() / '.vsorter.ini'
+
+            if default_config.exists():
+                config_file = default_config.absolute()
+                config: ConfigParser = get_config(default_config)
+            else:
+                config_file = 'Default internal config'
+                config: ConfigParser = get_def_config('vsorter')
+    except TypeError as ex:
+        raise Exception(f'Error reading configuration from {config_file}') from ex
+
+    logger.debug(f'Using {config_file}')
+    return config
 
 
 def main():
@@ -305,30 +349,7 @@ def main():
     for k, v in args.__dict__.items():
         logger.debug('    {} = {}'.format(k, v))
 
-    config_file = None
-    try:
-        if args.config:
-            config_file = Path(args.config)
-            if config_file.exists():
-                config: ConfigParser = get_config(args.config)
-            else:
-                logger.critical(f'Config file {config_file.absolute()} does not exist')
-                return
-        elif args.incfg:
-            config_file = 'internal config: ' + args.incfg
-            config: ConfigParser = get_def_config(args.incfg)
-        else:
-            default_config = Path().home() / '.vsorter.ini'
-
-            if default_config.exists():
-                config_file = default_config.absolute()
-                config: ConfigParser = get_config(default_config)
-            else:
-                config_file = 'Default internal config'
-                config: ConfigParser = get_def_config('vsorter')
-    except TypeError as ex:
-        logger.critical(f'Error reading configuration from {config_file}: {ex}')
-        return
+    config = find_config(args, logger)
 
     if args.print_config:
         config.write(sys.stdout, space_around_delimiters=True)
@@ -356,10 +377,13 @@ def main():
         if not match.endswith('$'):
             match += '.*$'
     files, indirs, indir0 = get_file_list(in_dir_files, ftype, match)
-    logger.info(f'{len(files)} files found in {len(indirs)} directory(s)')
+    total_files = len(files)
+
+    logger.info(f'{len(files)} files found in {total_files} directory(s)')
     if len(files) == 0:
         return
 
+    files.sort(reverse=args.reverse)
     if str(outdir) == '${indir}':
         outdir = indir0
 
@@ -401,7 +425,7 @@ def main():
     form.add_hidden('indir', indir0)
     form.add_hidden('basedir', str(outdir.absolute()))
     form.add_hidden('replace', 'True' if args.replace else 'False')
-    img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout, speeds)
+    img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout, speeds, total_files)
     form.add(img_tbl)
 
     indir_txt = f'{Path(indir0).absolute().parent.name}/{Path(indir0).absolute().name}'
@@ -445,6 +469,9 @@ def main():
                 case 'pause':
                     movie.pause();
                     break;
+                case 'play':
+                    movie.play();
+                    break;
 
                 case 'play_pause':
                     isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
@@ -481,12 +508,15 @@ def main():
 
         """
     )
-    heading = f'Overview of {Path(indir0).absolute()} {len(files)} images in {len(indirs)} ' \
+    heading = f'Overview of {Path(indir0).absolute()} {total_files} images in {len(indirs)} ' \
               f'directories max {maxfiles} per run'
     page.add(PageItemHeader(heading, 2))
     heading2 = f'Output directories will be under {outdir.absolute()}'
     page.add(PageItemHeader(heading2, 2))
 
+    in_files = min(total_files, maxfiles)
+    form.add_hidden('in_files', f'{in_files}')
+    form.add_hidden('total_files', f'{total_files}')
     page.add_blanks(2)
     page.add(PageItemString('<div id="container">\n', escape=False))
     submit_btn = PageFormButton('submit', 'Submit', class_name='char_btn')

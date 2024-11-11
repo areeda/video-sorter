@@ -20,10 +20,13 @@
 #
 """"""
 import configparser
+import re
 import subprocess
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
+
+from datetime import datetime
 
 from pathlib import Path
 
@@ -109,6 +112,24 @@ def start_gunicorn():
         subprocess.run(cmd)
 
 
+blink_file_dt_pat = re.compile('(\\d\\d-\\d\\d-\\d\\d)T(\\d\\d-\\d\\d-\\d\\d)_.+mp4')
+
+
+def get_movie_date(myinfile):
+    """
+    Figure out a date for this file preferable from its name
+    :param Path|str myinfile: pat to the file
+    :return  datetime.datetime: dae to se
+    """
+    file = Path(myinfile)
+    match = blink_file_dt_pat.match(file.name)
+    if match:
+        ret = datetime.strptime(match.group(1), '%y-%m-%d')
+    else:
+        ret = datetime.fromtimestamp(file.stat(follow_symlinks=True).st_mtime)
+    return ret
+
+
 def get_outfile(infile, outdir=None, ndigits=2, ext=None):
     """
     get a unique output file name of the proper type, NB: not thread safe if multiple programs
@@ -127,8 +148,12 @@ def get_outfile(infile, outdir=None, ndigits=2, ext=None):
         myext = ext if ext.startswith('.') else '.' + ext
 
     n = 0
+    movie_date = get_movie_date(myinfile)
+    yyyymm = movie_date.strftime('%Y%m')
 
     outfile = myoutdir / f'{myinfile.with_suffix("").name}{myext}'
+    v = re.sub('${yyyymm}', yyyymm, str(outfile), flags=re.IGNORECASE)
+    outfile = Path(v)
 
     while outfile.exists():
         n += 1

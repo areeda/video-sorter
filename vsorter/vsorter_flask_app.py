@@ -7,7 +7,7 @@ from ja_webutils.Page import Page
 from ja_webutils.PageItem import PageItemHeader, PageItemLink
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
-from vsorter.movie_utils import get_outfile
+from vsorter.movie_utils import get_outfile, get_movie_date
 
 app = Flask(__name__)
 
@@ -32,7 +32,8 @@ def process_vsort():  # put application's code here
     basedir = request.form.get('basedir')
     basedir = Path(basedir) if basedir else None
     replace = request.form.get('replace') == 'True'
-    my_page.add(PageItemHeader(f"Selected movies moved to {basedir}", 2))
+    in_files = request.form.get('in_files')
+    total_files = request.form.get('total_files')
     table = PageTable()
     table.sorted = True
     table.sorted = True
@@ -55,34 +56,41 @@ def process_vsort():  # put application's code here
                 row.add(movie_path)
                 table.add_row(row)
                 odir = basedir / disposition
-                if odir.exists():
-                    if disposition not in counts.keys():
-                        counts[disposition] = 1
-                    else:
-                        counts[disposition] += 1
-
-                    q = Path(movie_path).with_suffix('.*')
-                    mv_files = list(q.parent.glob(q.name))
-                    for mv_file in mv_files:
-                        dest = odir / mv_file.name
-                        if dest.exists() and replace:
-                            dest.unlink()
-                            what_we_did.add_row(PageTableRow(f'{Path(mv_file).name} already existed at {disposition}'))
-                        else:
-                            dest = get_outfile(mv_file, odir)
-                        shutil.move(mv_file, str(dest.absolute()))
-                        what_we_did.add_row(PageTableRow(f'Moved {Path(mv_file).name} to {disposition}'))
+                movie_date = get_movie_date(movie_path)
+                yymm = movie_date.strftime('%y-%m')
+                odir_str = str(odir.absolute()).replace('{yy-mm}', yymm)
+                odir = Path(odir_str)
+                odir.mkdir(parents=True, exist_ok=True)
+                if disposition not in counts.keys():
+                    counts[disposition] = 1
                 else:
-                    what_we_did.add_row(PageTableRow(f'{odir} does not exist'))
+                    counts[disposition] += 1
+
+                q = Path(movie_path).with_suffix('.*')
+                mv_files = list(q.parent.glob(q.name))
+                for mv_file in mv_files:
+                    dest = odir / mv_file.name
+                    if dest.exists() and replace:
+                        dest.unlink()
+                        what_we_did.add_row(PageTableRow(f'{Path(mv_file).name} already existed at {disposition}'))
+                    else:
+                        dest = get_outfile(mv_file, odir)
+                    shutil.move(mv_file, str(dest.absolute()))
+                    what_we_did.add_row(PageTableRow(f'Moved {Path(mv_file).name} to {disposition}'))
 
     cnt_table = PageTable()
     hdr_row = PageTableRow(row_type=RowType.HEAD)
     hdr_row.add(['Disposition', 'Count'])
     cnt_table.add_row(hdr_row)
+    move_count = 0
 
     for k, v in counts.items():
+        move_count += int(v)
         r = PageTableRow([k, v])
         cnt_table.add_row(r)
+
+    my_page.add(PageItemHeader(f"Selected {move_count} movies out of {in_files}/{total_files} moved to {basedir}", 2))
+
     my_page.add(cnt_table)
 
     my_page.add(table)
