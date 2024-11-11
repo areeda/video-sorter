@@ -88,6 +88,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
     :param  int maximg: add at most this many images
     :param bool noout: do not create dirs or add disposition
     :param Array(float) speeds: array of speed options
+    :param int total_files: total number of movies in the directory list vs max on one pae
 
     :return PageTable:
     """
@@ -207,9 +208,58 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
     return img_table
 
 
-def get_file_list(in_dir_files, ftype, match):
+def get_indir_date(month_dir):
+    """
+    Determine the date of a blink dir from name or mtime
+    :param Path month_dir: directory to analyze
+    :return datetime.date or None:
+    """
+    ret = None
+    m = re.match(r'.*(\d{2}-\d{2}-\d{2})', str(month_dir))
+    if m:
+        ret = datetime.datetime.strptime(m.group(1), '%y-%m-%d')
+    else:
+        m = re.match(r'.*(\d{2}-\d{2})', str(month_dir))
+        if m:
+            ret = datetime.datetime.strptime(m.group(1) + '-01', '%y-%m-%d')
+    if ret is None:
+        ret = datetime.datetime.fromtimestamp(month_dir.stat().st_mtime)
+
+    return ret
+
+
+
+
+def get_latest_indir(config):
+    """
+    Find the latest subdirectory in th configuration's indir
+    :param ConfigParser config: our configuration object
+    :return list[Path]: The latest subdirectory (just 1)
+    """
+    indir = Path(config['vsorter']['indir'])
+    ret = None
+    month_dirs: list[Path] = list(indir.glob('*'))
+    latest_month_dir: Path | None = None
+    for month_dir in month_dirs:
+        if month_dir.is_dir():
+            if latest_month_dir is None or get_indir_date(month_dir) > get_indir_date(latest_month_dir):
+                latest_month_dir = month_dir
+    if latest_month_dir is not None:
+        day_dirs: list[Path] = list(latest_month_dir.glob('*'))
+        latest_day_dir: Path | None = None
+        for day_dir in day_dirs:
+            if day_dir.is_dir():
+                if latest_day_dir is None or get_indir_date(day_dir) > get_indir_date(latest_day_dir):
+                    latest_day_dir = day_dir
+        ret = latest_day_dir
+    ret = Path.cwd() if ret is None else ret
+    return ret
+
+
+def get_file_list(config, in_dir_files, ftype, match):
     """
     Build list of files to process from the files and directories specified on the command line
+    :param ConfigParser config: program configuration for default input
     :param str match: regex to match file name
     :param list in_dir_files: the command line argument or a list of path-like objects
     :param str ftype: which type of files to use
@@ -223,6 +273,8 @@ def get_file_list(in_dir_files, ftype, match):
     infile_dir = 'None'
     inlist = in_dir_files
     matcher = re.compile(match, re.IGNORECASE) if match is not None else None
+    if len(inlist) == 0:
+        inlist = [get_latest_indir(config)]
 
     for idf in inlist:
         in_dir_file = Path(idf)
@@ -265,7 +317,7 @@ def parser_add_args(parser):
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
     parser.add_argument('--nproc', type=int, help='number of parallel movie2gif jobs to run')
-    parser.add_argument('in_dir_files', type=Path, default=[Path('.')], nargs='*',
+    parser.add_argument('in_dir_files', type=Path, nargs='*',
                         help='Path to directory or files with movies(.avi, mp4, mov) files')
     parser.add_argument('--outdir', type=Path, help='Where to put html, default= same as indir')
     parser.add_argument('--baseurl')
@@ -289,7 +341,6 @@ def find_config(args, logger):
     """
     find specified configuration file and do any variable substitutions
     :param Namespace args: cli arguments
-    :param str|None incfg: name of an internal config file
     :param logging.logger logger: ur logger
     :return ConfigParser: config to use
     """
@@ -376,7 +427,7 @@ def main():
             match = '^.*' + match
         if not match.endswith('$'):
             match += '.*$'
-    files, indirs, indir0 = get_file_list(in_dir_files, ftype, match)
+    files, indirs, indir0 = get_file_list(config, in_dir_files, ftype, match)
     total_files = len(files)
 
     logger.info(f'{len(files)} files found in {total_files} directory(s)')
@@ -407,7 +458,6 @@ def main():
         for d in dirdef:
             dname = d.strip()
             outd = outdir / dname
-            outd.mkdir(0o755, parents=True, exist_ok=True)
             odirs.append((dname, outd))
 
     speed_def = config['vsorter']['speeds']
