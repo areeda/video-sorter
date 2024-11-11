@@ -228,6 +228,21 @@ def get_indir_date(month_dir):
     return ret
 
 
+def get_latest_daydir(month_dir):
+    """
+    Search through a month dir and find the latest day dir with movies left to sort
+    :param Path month_dir: directory to search
+    :return Path | None: latest day dir if available
+    """
+    day_dirs: list[Path] = list(month_dir.glob('*'))
+    latest_day_dir: Path | None = None
+    for day_dir in day_dirs:
+        if day_dir.is_dir():
+            if latest_day_dir is None or get_indir_date(day_dir) > get_indir_date(latest_day_dir):
+                movies = list(day_dir.glob('*mp4'))
+                if len(movies) > 0:
+                    latest_day_dir = day_dir
+    return latest_day_dir
 
 
 def get_latest_indir(config):
@@ -239,20 +254,16 @@ def get_latest_indir(config):
     indir = Path(config['vsorter']['indir'])
     ret = None
     month_dirs: list[Path] = list(indir.glob('*'))
-    latest_month_dir: Path | None = None
+    month_dirs.sort(reverse=True)
+    latest_day_dir: Path | None = None
     for month_dir in month_dirs:
         if month_dir.is_dir():
-            if latest_month_dir is None or get_indir_date(month_dir) > get_indir_date(latest_month_dir):
-                latest_month_dir = month_dir
-    if latest_month_dir is not None:
-        day_dirs: list[Path] = list(latest_month_dir.glob('*'))
-        latest_day_dir: Path | None = None
-        for day_dir in day_dirs:
-            if day_dir.is_dir():
-                if latest_day_dir is None or get_indir_date(day_dir) > get_indir_date(latest_day_dir):
-                    latest_day_dir = day_dir
-        ret = latest_day_dir
-    ret = Path.cwd() if ret is None else ret
+            day_dir = get_latest_daydir(month_dir)
+            if day_dir is not None and \
+                    (latest_day_dir is None or get_indir_date(day_dir) > get_indir_date(latest_day_dir)):
+                latest_day_dir = day_dir
+
+    ret = Path.cwd() if latest_day_dir is None else latest_day_dir
     return ret
 
 
