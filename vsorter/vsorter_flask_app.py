@@ -37,7 +37,7 @@ def process_vsort():  # put application's code here
     table = PageTable()
     table.sorted = True
     table.sorted = True
-    hdr = ['Disposition', 'Thumb', 'Movie']
+    hdr = ['Disposition', 'Source', 'Destination']
     hdr_row = PageTableRow(hdr, RowType.HEAD)
     table.add_row(hdr_row)
     what_we_did = PageTable()
@@ -59,6 +59,7 @@ def process_vsort():  # put application's code here
                 movie_date = get_movie_date(movie_path)
                 yymm = movie_date.strftime('%y-%m')
                 odir_str = str(odir.absolute()).replace('{yy-mm}', yymm)
+                row.add(odir_str)
                 odir = Path(odir_str)
                 odir.mkdir(parents=True, exist_ok=True)
                 if disposition not in counts.keys():
@@ -76,7 +77,7 @@ def process_vsort():  # put application's code here
                     else:
                         dest = get_outfile(mv_file, odir)
                     shutil.move(mv_file, str(dest.absolute()))
-                    what_we_did.add_row(PageTableRow(f'Moved {Path(mv_file).name} to {disposition}'))
+                    what_we_did.add_row(PageTableRow(f'Moved {Path(mv_file).name} to {disposition} at {dest.parent}'))
 
     cnt_table = PageTable()
     hdr_row = PageTableRow(row_type=RowType.HEAD)
@@ -96,8 +97,9 @@ def process_vsort():  # put application's code here
     my_page.add(table)
     my_page.add_blanks(2)
 
-    my_page.add(PageItemHeader('Actions:', 3))
-    my_page.add(what_we_did)
+    # my_page.add(PageItemHeader('Actions:', 3))
+    # my_page.add(what_we_did)
+
     ret_html = my_page.get_html()
     return ret_html
 
