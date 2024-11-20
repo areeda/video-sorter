@@ -25,6 +25,8 @@ import time
 import webbrowser
 from configparser import ConfigParser
 
+import cv2
+
 start_time = time.time()
 
 import os
@@ -77,6 +79,25 @@ def mkthumb(inq, outq):
                 print(f'Problem making thumb for {str(fpath)}, return code: {res.returncode}')
             else:
                 outq.put((fpath, thumb_name))
+
+
+def get_movie_info(movie_path):
+    """
+    Get anhtml table describing the movie file
+    :param Path movie_path: moviee file to describe
+    :return PageTable: description
+    """
+    ret = PageTable()
+    cap = cv2.VideoCapture(str(movie_path))
+    frame_rate = cap.get(cv2.CAP_PROP_FPS)
+    duraton = cap.get(cv2.CAP_PROP_FRAME_COUNT) / frame_rate
+    frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    ret.add_row(["FPS", f'{frame_rate:.1f}'])
+    ret.add_row(["Duration", f'{duraton:.1f}'])
+    ret.add_row(["Height", f'{frame_height:.0f}'])
+    ret.add_row(["Width", f'{frame_width:.0f}'])
+    return ret
 
 
 def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
@@ -152,6 +173,9 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
         pil.add(PageItemString(f'{img_num} of {maximg}/{total_files}<br>', False))
         img_link = PageItemLink(f'file://{movie_path.absolute()}', f'{movie_path.name}', target='_blank')
         pil.add(img_link)
+        pil.add(PageItemBlanks(2))
+        info_tbl = get_movie_info(movie_path)
+        pil.add(info_tbl)
         pil.add(PageItemBlanks(2))
         for s in speeds:
             spd_str = f'{s:.2f}'
