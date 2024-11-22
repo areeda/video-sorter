@@ -83,7 +83,7 @@ def mkthumb(inq, outq):
 
 def get_movie_info(movie_path):
     """
-    Get anhtml table describing the movie file
+    Get an html table describing the movie file
     :param Path movie_path: moviee file to describe
     :return PageTable: description
     """
@@ -95,8 +95,7 @@ def get_movie_info(movie_path):
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     ret.add_row(["FPS", f'{frame_rate:.1f}'])
     ret.add_row(["Duration", f'{duraton:.1f}'])
-    ret.add_row(["Height", f'{frame_height:.0f}'])
-    ret.add_row(["Width", f'{frame_width:.0f}'])
+    ret.add_row(["frame", f'{frame_width}x{frame_height:.0f}'])
     return ret
 
 
