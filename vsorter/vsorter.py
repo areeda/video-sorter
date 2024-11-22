@@ -87,15 +87,22 @@ def get_movie_info(movie_path):
     :param Path movie_path: moviee file to describe
     :return PageTable: description
     """
-    ret = PageTable()
+    ret = PageTable(class_name='movie_desc')
     cap = cv2.VideoCapture(str(movie_path))
     frame_rate = cap.get(cv2.CAP_PROP_FPS)
-    duraton = cap.get(cv2.CAP_PROP_FRAME_COUNT) / frame_rate
+    count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    duraton = count / frame_rate
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    ret.add_row(["FPS", f'{frame_rate:.1f}'])
-    ret.add_row(["Duration", f'{duraton:.1f}'])
-    ret.add_row(["frame", f'{frame_width}x{frame_height:.0f}'])
+    bitrate = cap.get(cv2.CAP_PROP_BITRATE)
+    ret.add_row(["FPS", f'  {frame_rate:.1f}/s'])
+    ret.add_row(["Duration", f'  {duraton:.1f}s'])
+    ret.add_row(["N-frames", f'  {count:.0f}'])
+    ret.add_row(["frame", f'  {frame_width:.0f}x{frame_height:.0f}'])
+    size = movie_path.stat().st_size * 1e-6
+    ret.add_row(["Size", f'  {size:.1f}MB'])
+    ret.add_row(["Bitrate", f'  {bitrate:.1f}kB'])
+    ret.set_class_all('movie_desc')
     return ret
 
 
@@ -517,6 +524,7 @@ def main():
     page.include_js_cdn('jquery')
     page.add_style('.disposition {font-size: 1.4em;}')
     page.add_style('[type="radio"] {height: 20px; width: 20px;}')
+    page.add_style('.movie_desc {border: hidden; vertical-align: middle; text-align: right;}')
     page.add_headjs(
         """
         default_speed = 3;
