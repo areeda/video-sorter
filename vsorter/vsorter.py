@@ -22,6 +22,7 @@
 """"""
 import datetime
 import time
+import warnings
 import webbrowser
 from configparser import ConfigParser
 
@@ -34,7 +35,7 @@ from ja_webutils.Page import Page
 from ja_webutils.PageForm import PageForm, PageFormButton
 from ja_webutils.PageItem import PageItemRadioButton, PageItemHeader, PageItemLink, \
     PageItemBlanks, PageItemVideo, PageItemArray, PageItemString
-from ja_webutils.PageTable import PageTable, PageTableRow, RowType
+from ja_webutils.PageTable import PageTable, PageTableRow, RowType, PageTableCell
 
 from vsorter.movie_utils import get_config, get_def_config, start_gunicorn
 
@@ -88,21 +89,30 @@ def get_movie_info(movie_path):
     :return PageTable: description
     """
     ret = PageTable(class_name='movie_desc')
-    cap = cv2.VideoCapture(str(movie_path))
-    frame_rate = cap.get(cv2.CAP_PROP_FPS)
-    count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    duraton = count / frame_rate
-    frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    bitrate = cap.get(cv2.CAP_PROP_BITRATE)
-    ret.add_row(["FPS", f'  {frame_rate:.1f}/s'])
-    ret.add_row(["Duration", f'  {duraton:.1f}s'])
-    ret.add_row(["N-frames", f'  {count:.0f}'])
-    ret.add_row(["frame", f'  {frame_width:.0f}x{frame_height:.0f}'])
-    size = movie_path.stat().st_size * 1e-6
-    ret.add_row(["Size", f'  {size:.1f}MB'])
-    ret.add_row(["Bitrate", f'  {bitrate:.1f}kB'])
-    ret.set_class_all('movie_desc')
+    with warnings.catch_warnings(record=True) as w:
+
+        cap = cv2.VideoCapture(str(movie_path))
+        frame_rate = cap.get(cv2.CAP_PROP_FPS)
+        count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        duraton = count / frame_rate
+        frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        bitrate = cap.get(cv2.CAP_PROP_BITRATE)
+        ret.add_row(["FPS", f'  {frame_rate:.1f}/s'])
+        ret.add_row(["Duration", f'  {duraton:.1f}s'])
+        ret.add_row(["N-frames", f'  {count:.0f}'])
+        ret.add_row(["frame", f'  {frame_width:.0f}x{frame_height:.0f}'])
+        size = movie_path.stat().st_size * 1e-6
+        ret.add_row(["Size", f'  {size:.1f}MB'])
+        ret.add_row(["Bitrate", f'  {bitrate:.1f}kB'])
+        if w:
+            cv_warnings = ''
+            for warning in w:
+                cv_warnings += f'{warning.message}<br>\n'
+            warn_pageitem = PageItemString(cv_warnings, escape=False)
+            warn_cell = PageTableCell(warn_pageitem, col_span=2)
+            ret.add_row(warn_cell)
+        ret.set_class_all('movie_desc')
     return ret
 
 
