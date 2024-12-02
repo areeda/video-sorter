@@ -428,7 +428,9 @@ def main():
     global logger
     page = Page()
 
-    logging.basicConfig()
+    log_file_format = "%(asctime)s - %(levelname)s - %(funcName)s, %(lineno)d: %(message)s"
+    log_file_date_format = '%m-%d %H:%M:%S'
+    logging.basicConfig(format=log_file_format, datefmt=log_file_date_format)
     logger = logging.getLogger(__process_name__)
     logger.setLevel(logging.DEBUG)
 
@@ -481,7 +483,7 @@ def main():
     files, indirs, indir0 = get_file_list(config, in_dir_files, ftype, match)
     total_files = len(files)
 
-    logger.info(f'{len(files)} files found in {total_files} directory(s)')
+    logger.info(f'{len(files)} files found in {len(indirs)} directory(s)')
     if len(files) == 0:
         return
 
@@ -643,7 +645,9 @@ if __name__ == "__main__":
     main()
 
     if logger is None:
-        logging.basicConfig()
+        log_file_format = "%(asctime)s - %(levelname)s - %(funcName)s, %(lineno)d: %(message)s"
+        log_file_date_format = '%m-%d %H:%M:%S'
+        logging.basicConfig(format=log_file_format, datefmt=log_file_date_format)
         logger = logging.getLogger(__process_name__)
         logger.setLevel(logging.DEBUG)
 
