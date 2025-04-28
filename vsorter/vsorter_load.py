@@ -129,27 +129,38 @@ def main():
             indir = dev / 'blink_backup'
             if not indir.exists():
                 logger.info('Possible thumb drive does not have "blink_backup" subdir')
+                indir = None
             else:
-                logger.info(f'Processing {indir.absolute()}')
-                nfiles = 0
-                nbytes = 0
-                xfer_start = time.time()
+                break
+    if indir is None:
+        logger.critical('No thumb drive found')
+        exit(4)
 
-                month_dirs = list(indir.glob('*'))
-                for month in month_dirs:
-                    logger.debug(f'Month dir: {month.absolute()}')
-                    day_dirs = list(month.glob('*'))
-                    for day in day_dirs:
-                        movie_files = list(day.glob('*mp4'))
-                        logger.debug(f'There are {len(movie_files)} from {day.name}')
-                        for file in movie_files:
-                            nfiles += 1
-                            nbytes += Path(file).stat().st_size
-                        move_files(day.name, movie_files, Path(config['vsorter']['indir']), True)
+    nfiles = 0
+    nbytes = 0
+    xfer_start = time.time()
 
-                xfer_time = time.time() - xfer_start
-                xfer_rate = nbytes / xfer_time / 1000
-                logger.info(f'{nfiles} transferred in {xfer_time:.1f}s ({xfer_rate:.0f} KB/s')
+    month_dirs = list(indir.glob('*'))
+    for month in month_dirs:
+        logger.debug(f'Month dir: {month.absolute()}')
+        day_dirs = list(month.glob('*'))
+        for day in day_dirs:
+            movie_files = list(day.glob('*mp4'))
+            file_count = len(movie_files)
+            if file_count > 0:
+                log_level = logging.INFO
+            else:
+                log_level = logging.DEBUG
+
+            logger.log(log_level, f'There are {len(movie_files)} from {day.name}')
+            for file in movie_files:
+                nfiles += 1
+                nbytes += Path(file).stat().st_size
+            move_files(day.name, movie_files, Path(config['vsorter']['indir']), True)
+
+    xfer_time = time.time() - xfer_start
+    xfer_rate = nbytes / xfer_time / 1000
+    logger.info(f'{nfiles} transferred in {xfer_time:.1f}s ({xfer_rate:.0f} KB/s')
 
 
 if __name__ == "__main__":
