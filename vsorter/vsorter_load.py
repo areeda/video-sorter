@@ -125,7 +125,7 @@ def main():
     dev: Path
     for dev in indev:
         if 'blink' in dev.name.lower():
-            logger.debug(f'Blink thumb drive {dev}')
+            logger.info(f'Blink thumb drive {dev}')
             indir = dev / 'blink_backup'
             if not indir.exists():
                 logger.info('Possible thumb drive does not have "blink_backup" subdir')
@@ -149,14 +149,15 @@ def main():
             file_count = len(movie_files)
             if file_count > 0:
                 log_level = logging.INFO
+                for file in movie_files:
+                    nfiles += 1
+                    nbytes += Path(file).stat().st_size
+                out_dir = config['vsorter']['indir']
+                move_files(day.name, movie_files, Path(out_dir), True)
             else:
                 log_level = logging.DEBUG
 
-            logger.log(log_level, f'There are {len(movie_files)} from {day.name}')
-            for file in movie_files:
-                nfiles += 1
-                nbytes += Path(file).stat().st_size
-            move_files(day.name, movie_files, Path(config['vsorter']['indir']), True)
+            logger.log(log_level, f'Transferring {len(movie_files)} movies from {day.name}')
 
     xfer_time = time.time() - xfer_start
     xfer_rate = nbytes / xfer_time / 1000

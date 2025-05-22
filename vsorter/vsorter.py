@@ -153,7 +153,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
         movie_path: Path = itm[0]
 
         img_lbl = f'{img_num:03d}'
-        next_lbl = f'{img_num+1:03d}' if img_num < maximg else 'none'
+        next_lbl = f'{img_num + 1:03d}' if img_num < maximg else 'none'
         movie_id = f'movie_{img_lbl}'
         row_id = f'row_{img_lbl}'
         if next_lbl == 'none':
@@ -292,7 +292,6 @@ def get_latest_indir(config):
     :return list[Path]: The latest subdirectory (just 1)
     """
     indir = Path(config['vsorter']['indir'])
-    ret = None
     month_dirs: list[Path] = list(indir.glob('*'))
     month_dirs.sort(reverse=True)
     latest_day_dir: Path | None = None
