@@ -608,6 +608,14 @@ def main():
         .char_btn {font-size: 1.5em;}
         table, th, td {border: 1px solid; }
         table {border-collapse: collapse; }
+        video::-webkit-media-controls-panel {
+           display: on !important;
+           opacity: 1 !important;
+        }
+        video::-webkit-media-controls-timeline {
+            display: on;
+            opacity: 1 ;
+        }
 
         """
     )
