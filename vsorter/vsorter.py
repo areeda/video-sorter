@@ -166,7 +166,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
         row = PageTableRow(id=row_id)
 
         mstat = movie_path.stat()
-        mtime = datetime.datetime.utcfromtimestamp(mstat.st_mtime)
+        mtime = datetime.datetime.fromtimestamp(mstat.st_mtime, datetime.timezone.utc)
         mtime_str = mtime.strftime('%A %x %X')
         pil = PageItemArray()
         pil.add(PageItemString('File mtime:<br>', escape=False))
@@ -506,11 +506,19 @@ def main():
         dirdef = dirdef.split(',')
 
     odirs = list()
+    got_trash = False
+    trash_dir = config['vsorter']['trash'] if config['vsorter']['trash'] else None
+
     if not args.noout:
         for d in dirdef:
             dname = d.strip()
             outd = outdir / dname
+            if dname.lower() == 'trash':
+                got_trash = True
+                outd = trash_dir if trash_dir is not None else outd
             odirs.append((dname, outd))
+        if not got_trash and trash_dir is not None:
+            odirs.append(('trash', trash_dir))
 
     speed_def = config['vsorter']['speeds']
     if speed_def:
