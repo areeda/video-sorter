@@ -507,7 +507,7 @@ def main():
 
     odirs = list()
     got_trash = False
-    trash_dir = config['vsorter']['trash'] if config['vsorter']['trash'] else None
+    trash_dir = config['vsorter']['trash'] if config.has_option('vsorter','trash') else None
 
     if not args.noout:
         for d in dirdef:
