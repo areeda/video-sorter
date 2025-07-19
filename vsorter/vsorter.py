@@ -539,6 +539,8 @@ def main():
     form.add(img_tbl)
 
     indir_txt = f'{Path(indir0).absolute().parent.name}/{Path(indir0).absolute().name}'
+    logger.info(f'input directory is {indir_txt}')
+    logger.info(f'output directory is {outdir.absolute()}')
     page.title = indir_txt
     page.include_js_cdn('jquery')
     page.add_style('.disposition {font-size: 1.4em;}')
