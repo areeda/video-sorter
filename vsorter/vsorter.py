@@ -496,9 +496,13 @@ def main():
     gif_out_q = Queue()
 
     maxfiles = min(len(files), maxfiles)
+    nfiles_in_queue = 0
     if ftype == '.mp4':
         for f in files:
             gif_out_q.put((f, f))
+            nfiles_in_queue += 1
+            if nfiles_in_queue >= maxfiles:
+                break
 
     gif_out_q.put(('DONE', 'DONE'))
     dirdef = config['vsorter']['dirs']
@@ -516,9 +520,12 @@ def main():
             if dname.lower() == 'trash':
                 got_trash = True
                 outd = trash_dir if trash_dir is not None else outd
+                trash_dir = outd
             odirs.append((dname, outd))
         if not got_trash and trash_dir is not None:
             odirs.append(('trash', trash_dir))
+    logger.debug(f'Output directories are {odirs}')
+    logger.info(f'Trash directory: {trash_dir}')
 
     speed_def = config['vsorter']['speeds']
     if speed_def:
