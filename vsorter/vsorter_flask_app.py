@@ -26,7 +26,7 @@ def home():
 
 
 @app.route('/move_files', methods=['GET', 'POST'])
-def process_vsort():  # put application's code here
+def process_vsort():  # put the application's code here
     keys = request.form.keys()
     disp_pat = re.compile("disposition_(\\d+)")
     my_page = Page()

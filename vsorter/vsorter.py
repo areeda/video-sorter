@@ -156,12 +156,15 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
         next_lbl = f'{img_num + 1:03d}' if img_num < maximg else 'none'
         movie_id = f'movie_{img_lbl}'
         row_id = f'row_{img_lbl}'
+        speed_label = f'speed_{img_lbl}'
         if next_lbl == 'none':
             next_row_id = next_lbl
             next_movie_id = next_lbl
+            next_speed_label = next_lbl
         else:
             next_row_id = 'row_' + next_lbl
             next_movie_id = 'movie_' + next_lbl
+            next_speed_label = 'speed_' + next_lbl
 
         row = PageTableRow(id=row_id)
 
@@ -197,9 +200,11 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
             spd_str = f'{s:.2f}'
             btn_name = f'btn_{img_num:03d}_{s:.2f}'
             btn = PageFormButton(name=btn_name, contents=f'Play {spd_str}X', type='button', class_name='char_btn')
-            btn.add_event('onclick', f'movie_start(\'{movie_id}\', {spd_str});')
+            btn.add_event('onclick', f'movie_start(\'{movie_id}\',  \'{speed_label}\', {spd_str});')
             pil.add(btn)
             pil.add(PageItemBlanks(1))
+        pil.add(PageItemBlanks(1))
+        pil.add(PageItemString('not started', escape=False, class_name='char_btn', id=f'speed_{img_lbl}'))
         pil.add(PageItemBlanks(1))
 
         reset_char = PageItemString('&#x23EE;', escape=False, class_name='char_btn')
@@ -211,24 +216,25 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
         # nbsp = PageItemString('&nbsp;', escape=False, class_name='char_btn')
 
         btn = PageFormButton(name='reset_btn', contents=reset_char, type='button', class_name='char_btn')
-        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'reset\');')
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'{speed_label}\', \'reset\');')
         pil.add(btn)
 
         btn = PageFormButton(name='bkup_btn', contents=bkup_char, type='button', class_name='char_btn')
-        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'backup\');')
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'{speed_label}\', \'backup\');')
         pil.add(btn)
 
         btn = PageFormButton(name='pause', contents=play_pause_char, type='button', class_name='char_btn')
-        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'play_pause\');')
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'{speed_label}\', \'play_pause\');')
         pil.add(btn)
 
         btn = PageFormButton(name='play', contents=play_char, type='button', class_name='char_btn')
-        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'play\');')
+        btn.add_event('onclick', f'movie_fn(\'{movie_id}\', \'{speed_label}\', \'play\');')
         pil.add(btn)
 
         if next_row_id != 'none':
             btn = PageFormButton(name='next', contents=next_char, type='button', class_name='char_btn')
-            btn.add_event('onclick', f'pause_scroll(\'{movie_id}\', \'{next_row_id}\', \'{next_movie_id}\');')
+            btn.add_event('onclick', f'pause_scroll(\'{movie_id}\', \'{speed_label}\', \'{next_row_id}\', '
+                                     f'\'{next_movie_id}\', \'{next_speed_label}\');')
             pil.add(btn)
         pil.add(PageItemBlanks(1))
         row.add(pil)
@@ -236,7 +242,8 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
         if not noout:
             disposition = PageItemRadioButton('Movie disposition', options, name=f'disposition_{img_lbl}',
                                               class_name='disposition')
-            disposition.add_event('onclick', f'pause_scroll(\'{movie_id}\', \'{next_row_id}\', \'{next_movie_id}\');')
+            disposition.add_event('onclick', f'pause_scroll(\'{movie_id}\', \'{speed_label}\','
+                                             f' \'{next_row_id}\', \'{next_speed_label}\' \'{next_movie_id}\');')
             row.add(disposition)
 
         form.add_hidden(f'movie_path_{img_lbl}', str(movie_path.absolute()))
@@ -557,7 +564,7 @@ def main():
         """
         default_speed = 3;
 
-        function movie_start(id, speed)
+        function movie_start(id, speed_label_id, speed)
         {
             let movie = document.getElementById(id);
 
@@ -569,15 +576,19 @@ def main():
                 movie.playbackRate = speed;
                 default_speed = speed
                 movie.play();
+                    var speed_label = document.getElementById(speed_label_id);
+                    speed_label.innerHTML = 'Speed: '+ speed.toFixed(2);
+
             }
             else
             {
                 movie.pause();
             }
         }
-        function movie_fn(id, fname)
+        function movie_fn(id, speed_label_id, fname)
         {
             let movie = document.getElementById(id);
+            let speed_label = document.getElementById(speed_label_id);
             switch (fname)
             {
                 case 'reset':
@@ -588,9 +599,11 @@ def main():
                     break;
                 case 'pause':
                     movie.pause();
+                    speed_label.innerHTML = 'Paused ';
                     break;
                 case 'play':
                     movie.play();
+                    speed_label.innerHTML = 'Speed: ' + default_speed.toFixed(2);
                     break;
 
                 case 'play_pause':
@@ -607,15 +620,15 @@ def main():
             }
         }
 
-        function pause_scroll(movie_id, next_row_id, next_movie_id)
+        function pause_scroll(movie_id, speed_label_id, next_row_id, next_movie_id, next_speed_label_id)
         {
-            movie_fn(movie_id, 'pause')
+            movie_fn(movie_id, speed_label_id, 'pause')
             if (next_row_id != 'none')
             {
                 let row_element = document.getElementById(next_row_id);
                 row_element.scrollIntoView(true);
 
-                movie_start(next_movie_id, default_speed)
+                movie_start(next_movie_id, next_speed_label_id, default_speed)
             }
         }
         """
