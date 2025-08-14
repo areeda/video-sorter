@@ -526,12 +526,15 @@ def main():
             outd = outdir / dname
             if dname.lower() == 'trash':
                 got_trash = True
-                outd = trash_dir if trash_dir is not None else outd
+                outd = Path(trash_dir) if trash_dir is not None else outd
                 trash_dir = outd
             odirs.append((dname, outd))
         if not got_trash and trash_dir is not None:
-            odirs.append(('trash', trash_dir))
-    logger.debug(f'Output directories are {odirs}')
+            odirs.append(('trash', Path(trash_dir)))
+    odir_str = "\n   "
+    for d, p in odirs:
+        odir_str += f'{d} : {p.absolute()}\n   '
+    logger.debug(f'Output directories are {odir_str}')
     logger.info(f'Trash directory: {trash_dir}')
 
     speed_def = config['vsorter']['speeds']
@@ -541,6 +544,10 @@ def main():
     for s in speed_def:
         speed = float(s)
         speeds.append(speed)
+    if len(speeds) == 0:
+        speeds = [0.5, 1.0, 1.5 , 2.0, 3.0]
+    speed_strs = ['{:.2f}'.format(x) for x in speeds]
+    logger.debug(f'Speeds are {", ".join(speed_strs)}')
 
     baseurl = config['vsorter']['baseurl'] if config['vsorter']['baseurl'] else 'http://127.0.0.1:8000/'
     move_files_url = baseurl + '/move_files'
