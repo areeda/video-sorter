@@ -618,10 +618,12 @@ def main():
                     if (isVideoPlaying)
                     {
                         movie.pause();
+                        speed_label.innerHTML = 'Paused ';
                     }
                     else
                     {
                         movie.play();
+                        speed_label.innerHTML = 'Speed: ' + default_speed.toFixed(2);
                     }
                     break;
             }
