@@ -243,7 +243,7 @@ def mkhtml(movieq, odirs, form, maximg, noout, speeds, total_files):
             disposition = PageItemRadioButton('Movie disposition', options, name=f'disposition_{img_lbl}',
                                               class_name='disposition')
             disposition.add_event('onclick', f'pause_scroll(\'{movie_id}\', \'{speed_label}\','
-                                             f' \'{next_row_id}\', \'{next_speed_label}\' \'{next_movie_id}\');')
+                                             f' \'{next_row_id}\', \'{next_movie_id}\', \'{next_speed_label}\');')
             row.add(disposition)
 
         form.add_hidden(f'movie_path_{img_lbl}', str(movie_path.absolute()))
@@ -545,7 +545,7 @@ def main():
         speed = float(s)
         speeds.append(speed)
     if len(speeds) == 0:
-        speeds = [0.5, 1.0, 1.5 , 2.0, 3.0]
+        speeds = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
     speed_strs = ['{:.2f}'.format(x) for x in speeds]
     logger.debug(f'Speeds are {", ".join(speed_strs)}')
 
@@ -574,6 +574,7 @@ def main():
         function movie_start(id, speed_label_id, speed)
         {
             let movie = document.getElementById(id);
+            let speed_label = document.getElementById(speed_label_id);
 
             isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
 
@@ -583,13 +584,12 @@ def main():
                 movie.playbackRate = speed;
                 default_speed = speed
                 movie.play();
-                    var speed_label = document.getElementById(speed_label_id);
-                    speed_label.innerHTML = 'Speed: '+ speed.toFixed(2);
-
+                speed_label.innerHTML = 'Speed: '+ speed.toFixed(2);
             }
             else
             {
                 movie.pause();
+                speed_label.innerHTML = 'Paused ';
             }
         }
         function movie_fn(id, speed_label_id, fname)
