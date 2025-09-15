@@ -149,10 +149,10 @@ def get_outfile(infile, outdir=None, ndigits=2, ext=None):
 
     n = 0
     movie_date = get_movie_date(myinfile)
-    yyyymm = movie_date.strftime('%y-%m')
+    yymm = movie_date.strftime('%y-%m')
 
     outfile = myoutdir / f'{myinfile.with_suffix("").name}{myext}'
-    v = re.sub('${yy-mm}', yyyymm, str(outfile), flags=re.IGNORECASE)
+    v = re.sub('{yy-mm}', yymm, str(outfile), flags=re.IGNORECASE)
     outfile = Path(v)
 
     while outfile.exists():

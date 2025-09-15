@@ -1,5 +1,6 @@
 import re
 import shutil
+import textwrap
 import traceback
 from pathlib import Path
 
@@ -35,10 +36,10 @@ def process_vsort():  # put the application's code here
     replace = request.form.get('replace') == 'True'
     in_files = request.form.get('in_files')
     total_files = request.form.get('total_files')
-    table = PageTable()
+    table = PageTable(id='saved_movies')
     table.sorted = True
-    table.sorted = True
-    hdr = ['Disposition', 'Source', 'Destination']
+    table.sort_initial_order = {0:0}
+    hdr = ['Disposition', 'Source', 'Destination', 'Link to destination file']
     hdr_row = PageTableRow(hdr, RowType.HEAD)
     table.add_row(hdr_row)
     what_we_did = PageTable()
@@ -58,30 +59,31 @@ def process_vsort():  # put the application's code here
                     row.add(movie_path)
                     table.add_row(row)
                     odir = basedir / disposition
-                    movie_date = get_movie_date(movie_path)
-                    yymm = movie_date.strftime('%y-%m')
-                    odir_str = str(odir.absolute()).replace('{yy-mm}', yymm)
-                    row.add(odir_str)
-                    odir = Path(odir_str)
-                    odir.mkdir(parents=True, exist_ok=True)
+                    out_file = get_outfile(movie_path, odir)
+                    out_dir = out_file.parent
+                    row.add(str(out_file.parent))
+
+                    link = PageItemLink(f'file://{out_file.absolute()}', f'moved: {out_file.parent.name}/{out_file.name}',)
+                    row.add(link)
+                    out_dir.mkdir(parents=True, exist_ok=True)
                     if disposition not in counts.keys():
                         counts[disposition] = 1
                     else:
                         counts[disposition] += 1
 
+                    # get a list of all files with the same name in the same directory, eg avi, mp4, gif
                     q = Path(movie_path).with_suffix('.*')
                     mv_files = list(q.parent.glob(q.name))
                     for mv_file in mv_files:
-                        dest = odir / mv_file.name
+                        dest = out_file
                         if dest.exists() and replace:
                             dest.unlink()
                             what_we_did.add_row(PageTableRow(f'{Path(mv_file).name} already existed at {disposition}'))
-                        else:
-                            dest = get_outfile(mv_file, odir)
+
                         shutil.move(mv_file, str(dest.absolute()))
                         what_we_did.add_row(PageTableRow(f'Moved {Path(mv_file).name} to {disposition} at {dest.parent}'))
 
-        cnt_table = PageTable()
+        cnt_table = PageTable(id='count_table')
         hdr_row = PageTableRow(row_type=RowType.HEAD)
         hdr_row.add(['Disposition', 'Count'])
         cnt_table.add_row(hdr_row)
@@ -94,10 +96,32 @@ def process_vsort():  # put the application's code here
 
         my_page.add(PageItemHeader(f"Selected {move_count} movies out of {in_files}/{total_files} moved to {basedir}", 2))
 
+        my_page.add_blanks(2)
+        my_page.add(PageItemHeader('Destination folder counts', 2))
         my_page.add(cnt_table)
+        my_page.add_blanks(2)
 
+        my_page.add(PageItemHeader('Saved movies', 2))
         my_page.add(table)
         my_page.add_blanks(2)
+
+        my_page.add(PageItemHeader('What we did', 2))
+        my_page.add(what_we_did)
+        my_page.add_blanks(2)
+        my_page.title = 'Movie Sorter'
+
+        my_page.add(PageItemHeader('Notes', 2))
+        File_link_note = textwrap.dedent('''\
+        If the link to the file does not work in Chrome, you can coy the link address to the clipboard and
+        paste into a new tab or window. <BR> Alternatively  
+        you may want to install and configure the following extension. <BR>It is relatively safe to allow
+        file links from http://127.0.0.1 to open in the browser.
+        ''')
+        my_page.add(PageItemString(File_link_note, escape=False))
+
+        chrome_store_link = PageItemLink('https://chromewebstore.google.com/detail/enable-local-file-links/nikfmfgobenbhmocjaaboihbeocackld',
+                                         'Chrome store extension to enable Local File Links')
+        my_page.add(chrome_store_link)
     except Exception as ex:
         my_page.add(PageItemHeader('Error handling request', 2))
         my_page.add_blanks(2)
