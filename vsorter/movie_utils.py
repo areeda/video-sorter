@@ -20,10 +20,13 @@
 #
 """"""
 import configparser
+import re
 import subprocess
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'
+
+from datetime import datetime
 
 from pathlib import Path
 
@@ -109,6 +112,24 @@ def start_gunicorn():
         subprocess.run(cmd)
 
 
+blink_file_dt_pat = re.compile('(\\d\\d-\\d\\d-\\d\\d)T(\\d\\d-\\d\\d-\\d\\d)_.+mp4')
+
+
+def get_movie_date(myinfile):
+    """
+    Figure out a date for this file preferable from its name
+    :param Path|str myinfile: pat to the file
+    :return  datetime.datetime: dae to se
+    """
+    file = Path(myinfile)
+    match = blink_file_dt_pat.match(file.name)
+    if match:
+        ret = datetime.strptime(match.group(1), '%y-%m-%d')
+    else:
+        ret = datetime.fromtimestamp(file.stat(follow_symlinks=True).st_mtime)
+    return ret
+
+
 def get_outfile(infile, outdir=None, ndigits=2, ext=None):
     """
     get a unique output file name of the proper type, NB: not thread safe if multiple programs
@@ -117,7 +138,7 @@ def get_outfile(infile, outdir=None, ndigits=2, ext=None):
     :param Path outdir: output directory or None to use infile's parent directory
     :param int ndigits: precision of version number
     :param str ext: new file type/extension, None -> use input extension
-    :return Path: a path that does not exist too an output file
+    :return Path: a path that does not exist to an output file
     """
     myinfile = Path(infile)
     myoutdir = outdir if outdir else infile.parent
@@ -127,8 +148,12 @@ def get_outfile(infile, outdir=None, ndigits=2, ext=None):
         myext = ext if ext.startswith('.') else '.' + ext
 
     n = 0
+    movie_date = get_movie_date(myinfile)
+    yymm = movie_date.strftime('%y-%m')
 
     outfile = myoutdir / f'{myinfile.with_suffix("").name}{myext}'
+    v = re.sub('{yy-mm}', yymm, str(outfile), flags=re.IGNORECASE)
+    outfile = Path(v)
 
     while outfile.exists():
         n += 1

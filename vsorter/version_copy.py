@@ -33,9 +33,6 @@ start_time = time.time()
 import argparse
 import logging
 from pathlib import Path
-import re
-import subprocess
-import sys
 
 try:
     from ._version import __version__
@@ -121,6 +118,7 @@ def main():
             do_cp(file, outfile)
         else:
             logger.critical('Copying a directory has not been implemented, yet.')
+
 
 if __name__ == "__main__":
 

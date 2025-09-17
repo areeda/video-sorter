@@ -30,8 +30,6 @@ start_time = time.time()
 import argparse
 import logging
 from pathlib import Path
-import re
-import subprocess
 import sys
 import traceback
 
@@ -69,7 +67,7 @@ def parser_add_args(parser):
 def move_files(day, movie_files, odir, delete_em=False):
     """
 
-    :param str day: day label eg 24-06-06
+    :param str day: day label e.g. 24-06-06
     :param list[Path] movie_files: path to individual files
     :param Path odir: where to put files
     :param bool delete_em: true -> move else copy
@@ -86,7 +84,6 @@ def move_files(day, movie_files, odir, delete_em=False):
             shutil.move(movie, ofile)
         else:
             shutil.copy(movie, ofile)
-
 
 
 def main():
@@ -128,16 +125,20 @@ def main():
     dev: Path
     for dev in indev:
         if 'blink' in dev.name.lower():
-            logger.debug(f'Blink thumb drive {dev}')
+            logger.info(f'Blink thumb drive {dev}')
             indir = dev / 'blink_backup'
             if not indir.exists():
-                logger.info(f'Possible thumb drive does not have "blink_backup" subdir')
+                logger.info('Possible thumb drive does not have "blink_backup" subdir')
                 indir = None
             else:
                 break
     if indir is None:
-        logger.critical(f'No thumb drive found')
+        logger.critical('No thumb drive found')
         exit(4)
+
+    nfiles = 0
+    nbytes = 0
+    xfer_start = time.time()
 
     month_dirs = list(indir.glob('*'))
     for month in month_dirs:
@@ -145,11 +146,22 @@ def main():
         day_dirs = list(month.glob('*'))
         for day in day_dirs:
             movie_files = list(day.glob('*mp4'))
-            logger.debug(f'There are {len(movie_files)} from {day.name}')
-            move_files(day.name, movie_files, Path(config['vsorter']['indir']), True)
+            file_count = len(movie_files)
+            if file_count > 0:
+                log_level = logging.INFO
+                for file in movie_files:
+                    nfiles += 1
+                    nbytes += Path(file).stat().st_size
+                out_dir = config['vsorter']['indir']
+                move_files(day.name, movie_files, Path(out_dir), True)
+            else:
+                log_level = logging.DEBUG
 
+            logger.log(log_level, f'Transferring {len(movie_files)} movies from {day.name}')
 
-
+    xfer_time = time.time() - xfer_start
+    xfer_rate = nbytes / xfer_time / 1000
+    logger.info(f'{nfiles} transferred in {xfer_time:.1f}s ({xfer_rate:.0f} KB/s')
 
 
 if __name__ == "__main__":
