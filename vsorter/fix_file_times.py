@@ -27,7 +27,7 @@ import os
 import argparse
 import logging
 from pathlib import Path
-from _version import __version__
+from ._version import __version__
 
 __author__ = 'joseph areeda'
 __email__ = 'joseph.areeda@ligo.org'

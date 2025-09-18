@@ -9,7 +9,7 @@ from ja_webutils.Page import Page
 from ja_webutils.PageItem import PageItemHeader, PageItemLink, PageItemString
 from ja_webutils.PageTable import PageTable, PageTableRow, RowType
 
-from vsorter.movie_utils import get_outfile, get_movie_date
+from vsorter.movie_utils import get_outfile
 
 app = Flask(__name__)
 
@@ -38,7 +38,7 @@ def process_vsort():  # put the application's code here
     total_files = request.form.get('total_files')
     table = PageTable(id='saved_movies')
     table.sorted = True
-    table.sort_initial_order = {0:0}
+    table.sort_initial_order = {0: 0}
     hdr = ['Disposition', 'Source', 'Destination', 'Link to destination file']
     hdr_row = PageTableRow(hdr, RowType.HEAD)
     table.add_row(hdr_row)
@@ -112,15 +112,17 @@ def process_vsort():  # put the application's code here
 
         my_page.add(PageItemHeader('Notes', 2))
         File_link_note = textwrap.dedent('''\
-        If the link to the file does not work in Chrome, you can coy the link address to the clipboard and
-        paste into a new tab or window. <BR> Alternatively  
+        If the link to the file does not work in Chrome, you can copy the link address to the clipboard and
+        paste into a new tab or window. <BR> Alternatively
         you may want to install and configure the following extension. <BR>It is relatively safe to allow
         file links from http://127.0.0.1 to open in the browser.
         ''')
         my_page.add(PageItemString(File_link_note, escape=False))
 
-        chrome_store_link = PageItemLink('https://chromewebstore.google.com/detail/enable-local-file-links/nikfmfgobenbhmocjaaboihbeocackld',
-                                         'Chrome store extension to enable Local File Links')
+        chrome_store_link = PageItemLink('https://chromewebstore.google.com/detail/enable-local-file-links'
+                                         '/nikfmfgobenbhmocjaaboihbeocackld',
+                                         'Chrome store extension to enable Local File Links',
+                                         target='_blank')
         my_page.add(chrome_store_link)
     except Exception as ex:
         my_page.add(PageItemHeader('Error handling request', 2))

@@ -44,6 +44,9 @@ build-backend = "setuptools.build_meta"
     "numpy",
     "ja_webutils",
     "psutil",
+    "opencv-python",
+    "pytz",
+    "ffmpeg-python"
   ]
 
   # dynamic properties set by tools
