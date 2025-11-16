@@ -383,7 +383,7 @@ def parser_add_args(parser):
     parser.add_argument('--match', help='regex for selecting file names such as blink camera name')
     parser.add_argument('--noout', action="store_true",
                         help='do not creat output dirs or add disposition radio buttons')
-    parser.add_argument('--incfg', help='Select included config (vsorter, imovie)')
+    parser.add_argument('--incfg', action='store_true', help='Select included config (vsorter, imovie)')
     parser.add_argument('--max-img', type=int, help='How many videos on the page')
     parser.add_argument('--print-config', action="store_true",
                         help='Print the included config to make it easy to edit')

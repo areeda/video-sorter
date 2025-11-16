@@ -30,6 +30,8 @@ import logging
 from pathlib import Path
 import re
 
+from .vsorter import find_config
+
 try:
     from ._version import __version__
 except ImportError:
@@ -54,7 +56,11 @@ def parser_add_args(parser):
                         version=__version__)
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='show only fatal errors')
-    parser.add_argument('infiles', type=Path, nargs='*', default=[Path('.')], help='Files, directories to scan')
+    parser.add_argument('infiles', type=Path, nargs='*', help='Files, directories to scan, default use config')
+    parser.add_argument('-b', '--brief', action='store_true', help='Show only directory name and count')
+    parser.add_argument('-a', '--all', action='store_true', help='Show all day directories')
+    parser.add_argument('--config', type=Path, help='Vsorter configuration file default = ~/.vsorter.ini')
+    parser.add_argument('--incfg', action='store_true', help='Select included config (vsorter, imovie)')
 
 
 file_pattern = re.compile('^.+_([a-zA-Z0-9]+)_.*mp4')
@@ -74,6 +80,42 @@ def get_camera(cameras, path):
             cameras[camera] += 1
         else:
             cameras[camera] = 1
+
+
+def do_one(infiles, args):
+
+
+    cameras = dict()
+    file_or_dir: Path
+    for file_or_dir in infiles:
+        if file_or_dir.is_file():
+            get_camera(cameras, file_or_dir)
+        else:
+            for (root, dirs, files) in os.walk(file_or_dir, topdown=True):
+                for file in files:
+                    get_camera(cameras, Path(file))
+    total = 0
+    maxlen = 0
+
+    for k in cameras.keys():
+        maxlen = max(maxlen, len(k))
+
+    skeys = list(cameras.keys())
+    skeys.sort()
+
+    for camera in cameras.keys():
+        count = cameras[camera]
+        if not args.brief:
+            print(f'{camera:{maxlen}s}: {count}')
+        total += count
+
+    if args.brief:
+        lbl = infiles[0].name
+        lbl += '...' if len(infiles) > 1 else ''
+        print(f'{lbl:>10s}: {total}')
+    else:
+        print(f'============\n{"Total":{maxlen}s}: {total}')
+
 
 
 def main():
@@ -101,29 +143,21 @@ def main():
     for k, v in args.__dict__.items():
         logger.debug('    {} = {}'.format(k, v))
 
-    cameras = dict()
-    file_or_dir: Path
-    for file_or_dir in args.infiles:
-        if file_or_dir.is_file():
-            get_camera(cameras, file_or_dir)
-        else:
-            for (root, dirs, files) in os.walk(file_or_dir, topdown=True):
-                for file in files:
-                    get_camera(cameras, Path(file))
-    total = 0
-    maxlen = 0
+    config = find_config(args, logger)
+    infiles = args.infiles
+    if not infiles:
+        infiles = [Path(config['vsorter']['indir'])]
+    if args.all:
+        infiles = Path(config['vsorter']['indir'])
+        month_dirs = list(infiles.glob('*-*'))
+        for month_dir in month_dirs:
+            print(f'Month: {month_dir.name}')
+            for day_dir in month_dir.glob('*-*-*'):
+                if day_dir.is_dir() and re.match('\d\d-\d\d-\d\d', day_dir.name):
+                    do_one([day_dir], args)
 
-    for k in cameras.keys():
-        maxlen = max(maxlen, len(k))
-
-    skeys = list(cameras.keys())
-    skeys.sort()
-    for camera in cameras.keys():
-        count = cameras[camera]
-        print(f'{camera:{maxlen}s}: {count}')
-        total += count
-
-    print(f'============\n{"Total":{maxlen}s}: {total}')
+    else:
+        do_one(infiles, args)
 
 
 if __name__ == "__main__":
