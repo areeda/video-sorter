@@ -106,15 +106,16 @@ def do_one(infiles, args):
     for camera in cameras.keys():
         count = cameras[camera]
         if not args.brief:
-            print(f'{camera:{maxlen}s}: {count}')
+            print(f'   {camera:{maxlen}s}: {count}')
         total += count
 
-    if args.brief:
-        lbl = infiles[0].name
-        lbl += '...' if len(infiles) > 1 else ''
-        print(f'{lbl:>10s}: {total}')
-    else:
-        print(f'============\n{"Total":{maxlen}s}: {total}')
+    if total > 0:
+        if args.brief:
+            lbl = infiles[0].name
+            lbl += '...' if len(infiles) > 1 else ''
+            print(f'{lbl:>10s}: {total}')
+        else:
+            print(f'{"Total":{maxlen}s}: {total}\n')
 
 
 
@@ -154,9 +155,11 @@ def main():
             print(f'Month: {month_dir.name}')
             for day_dir in month_dir.glob('*-*-*'):
                 if day_dir.is_dir() and re.match('\d\d-\d\d-\d\d', day_dir.name):
+                    print(f'  Day: {day_dir.name}')
                     do_one([day_dir], args)
-
     else:
+        if len(infiles) == 1:
+            print(f'Searching: {infiles[0]}')
         do_one(infiles, args)
 
 
