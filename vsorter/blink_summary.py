@@ -84,7 +84,6 @@ def get_camera(cameras, path):
 
 def do_one(infiles, args):
 
-
     cameras = dict()
     file_or_dir: Path
     for file_or_dir in infiles:
@@ -116,7 +115,6 @@ def do_one(infiles, args):
             print(f'{lbl:>10s}: {total}')
         else:
             print(f'{"Total":{maxlen}s}: {total}\n')
-
 
 
 def main():
@@ -154,8 +152,9 @@ def main():
         for month_dir in month_dirs:
             print(f'Month: {month_dir.name}')
             for day_dir in month_dir.glob('*-*-*'):
-                if day_dir.is_dir() and re.match('\d\d-\d\d-\d\d', day_dir.name):
-                    print(f'  Day: {day_dir.name}')
+                if day_dir.is_dir() and re.match('\\d\\d-\\d\\d-\\d\\d', day_dir.name):
+                    if not args.brief:
+                        print(f'  Day: {day_dir.name}')
                     do_one([day_dir], args)
     else:
         if len(infiles) == 1:
