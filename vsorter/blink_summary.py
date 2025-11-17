@@ -122,7 +122,6 @@ def count_out_dirs(infile, level=0):
     inpath = Path(infile)
     if not inpath.is_dir():
         return 0
-    print(f'{" "*4*level}{inpath.name}')
 
     files = list(inpath.glob('*'))
     movies = 0
@@ -133,9 +132,11 @@ def count_out_dirs(infile, level=0):
         else:
             if file.suffix == '.mp4':
                 movies += 1
-    print(f'{" "*(4*level+2)}Movies: {movies}, subdirs: {total} ')
-
-    return total
+    if movies + total > 0:
+        print(f'{" "*4*level} {inpath}: Movies: {movies}, subdirs: {total} ')
+        if level == 0:
+            print('----------------------------------------')
+    return total + movies
 
 
 def main():
@@ -181,10 +182,11 @@ def main():
         out_dir = config['vsorter']['outdir']
         out_dir = re.sub(r'/{yy-mm}', '', out_dir)
         out_dir = Path(out_dir)
+        total = 0
         for d in out_dir.glob('*'):
             if d.is_dir():
-                print(f'{d.absolute()}')
-                count_out_dirs(d, 0)
+                total += count_out_dirs(d, 0)
+        print(f'Total movies in {out_dir}: {total:,d}')
     else:
         if len(infiles) == 1:
             print(f'Searching: {infiles[0]}')
