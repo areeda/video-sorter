@@ -27,12 +27,14 @@ def home():
 
 
 @app.route('/move_files', methods=['GET', 'POST'])
-def process_vsort():  # put the application's code here
+def process_vsort():
     keys = request.form.keys()
     disp_pat = re.compile("disposition_(\\d+)")
     my_page = Page()
     basedir = request.form.get('basedir')
     basedir = Path(basedir) if basedir else None
+    trashdir = request.form.get('trash')
+    trashdir = Path(trashdir) if trashdir else basedir / 'trash'
     replace = request.form.get('replace') == 'True'
     in_files = request.form.get('in_files')
     total_files = request.form.get('total_files')
@@ -58,7 +60,10 @@ def process_vsort():  # put the application's code here
                     movie_path = request.form.get(f'movie_path_{img_num}')
                     row.add(movie_path)
                     table.add_row(row)
-                    odir = basedir / disposition
+                    if disposition == 'trash':
+                        odir = trashdir
+                    else:
+                        odir = basedir / disposition
                     out_file = get_outfile(movie_path, odir)
                     out_dir = out_file.parent
                     row.add(str(out_file.parent))

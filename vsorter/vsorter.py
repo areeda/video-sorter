@@ -556,6 +556,11 @@ def main():
     form.add_hidden('indir', indir0)
     form.add_hidden('basedir', str(outdir.absolute()))
     form.add_hidden('replace', 'True' if args.replace else 'False')
+    if config.has_option('vsorter', 'trash'):
+        form.add_hidden('trash', str(Path(trash_dir).absolute()))
+    else:
+        trash_dir = str((outdir / 'trash').absolute())
+        form.add_hidden('trash', 'trash')
     img_tbl = mkhtml(gif_out_q, odirs, form, maxfiles, args.noout, speeds, total_files)
     form.add(img_tbl)
 

@@ -58,7 +58,8 @@ def parser_add_args(parser):
                         help='show only fatal errors')
     parser.add_argument('infiles', type=Path, nargs='*', help='Files, directories to scan, default use config')
     parser.add_argument('-b', '--brief', action='store_true', help='Show only directory name and count')
-    parser.add_argument('-a', '--all', action='store_true', help='Show all day directories')
+    parser.add_argument('-a', '--all', action='store_true', help='Show all input day directories')
+    parser.add_argument('-o', '--out', action='store_true', help='Show all output subdirectories')
     parser.add_argument('--config', type=Path, help='Vsorter configuration file default = ~/.vsorter.ini')
     parser.add_argument('--incfg', action='store_true', help='Select included config (vsorter, imovie)')
 
@@ -117,6 +118,26 @@ def do_one(infiles, args):
             print(f'{"Total":{maxlen}s}: {total}\n')
 
 
+def count_out_dirs(infile, level=0):
+    inpath = Path(infile)
+    if not inpath.is_dir():
+        return 0
+    print(f'{" "*4*level}{inpath.name}')
+
+    files = list(inpath.glob('*'))
+    movies = 0
+    total = 0
+    for file in files:
+        if file.is_dir():
+            total += count_out_dirs(file, level + 1)
+        else:
+            if file.suffix == '.mp4':
+                movies += 1
+    print(f'{" "*(4*level+2)}Movies: {movies}, subdirs: {total} ')
+
+    return total
+
+
 def main():
     global logger
 
@@ -156,6 +177,14 @@ def main():
                     if not args.brief:
                         print(f'  Day: {day_dir.name}')
                     do_one([day_dir], args)
+    elif args.out:
+        out_dir = config['vsorter']['outdir']
+        out_dir = re.sub(r'/{yy-mm}', '', out_dir)
+        out_dir = Path(out_dir)
+        for d in out_dir.glob('*'):
+            if d.is_dir():
+                print(f'{d.absolute()}')
+                count_out_dirs(d, 0)
     else:
         if len(infiles) == 1:
             print(f'Searching: {infiles[0]}')
