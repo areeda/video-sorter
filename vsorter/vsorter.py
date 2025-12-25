@@ -583,19 +583,13 @@ def main():
 
             isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
 
-            if (!isVideoPlaying)
-            {
-                movie.currentTime = 0;
-                movie.playbackRate = speed;
-                default_speed = speed
-                movie.play();
-                speed_label.innerHTML = 'Speed: '+ speed.toFixed(2);
-            }
-            else
-            {
-                movie.pause();
-                speed_label.innerHTML = 'Paused ';
-            }
+            movie.pause();
+            movie.currentTime = 0;
+            movie.playbackRate = speed;
+            default_speed = speed
+            movie.play();
+            speed_label.innerHTML = 'Speed: '+ speed.toFixed(2);
+
         }
         function movie_fn(id, speed_label_id, fname)
         {
