@@ -595,6 +595,11 @@ def main():
         {
             let movie = document.getElementById(id);
             let speed_label = document.getElementById(speed_label_id);
+            let duration = movie.duration;
+            if (Number.isNaN(duration)) duration = 0;
+            currentTime = movie.currentTime;
+            if (Number.isNaN(currentTime)) currentTime = 0;
+            is_done = (currentTime >= duration * .9);
             switch (fname)
             {
                 case 'reset':
@@ -608,13 +613,20 @@ def main():
                     speed_label.innerHTML = 'Paused ';
                     break;
                 case 'play':
-                    movie.play();
-                    speed_label.innerHTML = 'Speed: ' + default_speed.toFixed(2);
+                    if (is_done)
+                    {
+                        movie_start(id, speed_label_id, default_speed);
+                    }
+                    else
+                    {
+                        movie.play();
+                        speed_label.innerHTML = 'Speed: ' + default_speed.toFixed(2);
+                    }
                     break;
 
                 case 'play_pause':
                     isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
-                    if (isVideoPlaying)
+                    if (isVideoPlaying && !is_done)
                     {
                         movie.pause();
                         speed_label.innerHTML = 'Paused ';
