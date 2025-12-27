@@ -597,9 +597,9 @@ def main():
             let speed_label = document.getElementById(speed_label_id);
             let duration = movie.duration;
             if (Number.isNaN(duration)) duration = 0;
-            currentTime = movie.currentTime;
-            if (Number.isNaN(currentTime)) currentTime = 0;
-            is_done = (currentTime >= duration * .9);
+            let currentTime = movie.currentTime;
+            if (Number.isNaN(currentTime)) currentTime = duration;
+            let is_done = (currentTime >= duration * .9);
             switch (fname)
             {
                 case 'reset':
