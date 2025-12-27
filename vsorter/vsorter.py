@@ -313,6 +313,36 @@ def get_latest_indir(config):
     return ret
 
 
+def get_matcher(match):
+    """
+    Produce a regular expression matcher for the given pattern.
+
+    :param match: The pattern to match, with optional leading '^' and trailing '$'
+    :return: Compiled regular expression matcher or None if no match provided
+    """
+    if match:
+        match = match.strip("\"'")
+
+        if  match.startswith('^'):
+            match = match[1:]
+            pre = '^'
+        else:
+            pre = '^.*'
+
+        if  match.endswith('$'):
+            match = match[:-1]
+            post = '$'
+        else:
+            post = '.*$'
+
+        match = pre + '(' + match + ')' + post
+        matcher = re.compile(match, re.IGNORECASE)
+    else:
+        matcher = None
+    logger.debug(f'Match: "{match}"')
+    return matcher
+
+
 def get_file_list(config, in_dir_files, ftype, match):
     """
     Build list of files to process from the files and directories specified on the command line
@@ -326,10 +356,11 @@ def get_file_list(config, in_dir_files, ftype, match):
     files = list()
     direct_fcount = 0
     indirs = dict()
-    indir0 = None       # first directory seen, used as default out directory
+    indir0 = None       # THE first directory seen, used as the default output directory
     infile_dir = 'None'
     inlist = in_dir_files
-    matcher = re.compile(match, re.IGNORECASE) if match is not None else None
+    matcher = get_matcher(match)
+
     if len(inlist) == 0:
         inlist = [get_latest_indir(config)]
 
@@ -479,13 +510,7 @@ def main():
     in_dir_files = args.in_dir_files
 
     match: str = args.match
-    if match is None:
-        match = '.*'
-    else:
-        if not match.startswith('^'):
-            match = '^.*' + match
-        if not match.endswith('$'):
-            match += '.*$'
+
     files, indirs, indir0 = get_file_list(config, in_dir_files, ftype, match)
     total_files = len(files)
 
