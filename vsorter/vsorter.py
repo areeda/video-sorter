@@ -605,8 +605,13 @@ def main():
         {
             let movie = document.getElementById(id);
             let speed_label = document.getElementById(speed_label_id);
+            let currentTime = movie.currentTime;
+            let duration = movie.duration;
+            let paused = movie.paused;
+            let ended = movie.ended;
+            let readyState = movie.readyState;
 
-            let isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
+            let isVideoPlaying = (currentTime > 0 && !paused && !ended && readyState >= 2);
 
             movie.pause();
             movie.currentTime = 0;
