@@ -638,17 +638,8 @@ def main():
                     speed_label.innerHTML = 'Paused ';
                     break;
                 case 'play':
-                    if (is_done)
-                    {
-                        movie_start(id, speed_label_id, default_speed);
-                    }
-                    else
-                    {
-                        movie.play();
-                        speed_label.innerHTML = 'Speed: ' + default_speed.toFixed(2);
-                    }
+                    movie_start(id, speed_label_id, default_speed);
                     break;
-
                 case 'play_pause':
                     isVideoPlaying = (movie.currentTime > 0 && !movie.paused && !movie.ended && movie.readyState > 2);
                     if (isVideoPlaying && !is_done)
