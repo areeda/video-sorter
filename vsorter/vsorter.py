@@ -94,10 +94,16 @@ def get_movie_info(movie_path):
         cap = cv2.VideoCapture(str(movie_path))
         frame_rate = cap.get(cv2.CAP_PROP_FPS)
         count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        duraton = count / frame_rate
-        frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        bitrate = cap.get(cv2.CAP_PROP_BITRATE)
+        if count == 0 or frame_rate == 0:
+            duraton = 0
+            frame_height = 0
+            frame_width = 0
+            bitrate = 0
+        else:
+            duraton = count / frame_rate
+            frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            bitrate = cap.get(cv2.CAP_PROP_BITRATE)
         ret.add_row(["FPS", f'  {frame_rate:.1f}/s'])
         ret.add_row(["Duration", f'  {duraton:.1f}s'])
         ret.add_row(["N-frames", f'  {count:.0f}'])
@@ -610,13 +616,21 @@ def main():
             let paused = movie.paused;
             let ended = movie.ended;
             let readyState = movie.readyState;
+            let current_speed = movie.playbackRate;
 
             let isVideoPlaying = (currentTime > 0 && !paused && !ended && readyState >= 2);
 
             movie.pause();
             movie.currentTime = 0;
-            movie.playbackRate = speed;
-            default_speed = speed
+            if (current_speed != speed)
+            {
+                movie.playbackRate = speed;
+                default_speed = speed
+            }
+            else
+            {
+                default_speed = current_speed
+            }
             movie.play();
             speed_label.innerHTML = 'Speed: '+ speed.toFixed(2);
 
